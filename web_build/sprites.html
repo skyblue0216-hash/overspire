@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <title>Overspire Hero - 8-Directional Authentic Sprites</title>
+  <style>
+    body { background: #0c0e14; color: #eee; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; padding: 24px; text-align: center; }
+    h1 { color: #00e5ff; font-size: 22px; margin-bottom: 8px; }
+    p { color: #94a3b8; font-size: 14px; margin-bottom: 24px; }
+    .compass-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 180px);
+      gap: 16px;
+      justify-content: center;
+      margin: 0 auto;
+      max-width: 800px;
+    }
+    .card {
+      background: #181d28;
+      border: 1px solid #334155;
+      border-radius: 8px;
+      padding: 12px;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    }
+    .card h3 {
+      font-size: 13px;
+      color: #38bdf8;
+      margin-bottom: 8px;
+    }
+    .sprite-box {
+      width: 144px; height: 144px;
+      margin: 0 auto;
+      background: #0f172a;
+      background-image: 
+        linear-gradient(45deg, #1e293b 25%, transparent 25%), 
+        linear-gradient(-45deg, #1e293b 25%, transparent 25%), 
+        linear-gradient(45deg, transparent 75%, #1e293b 75%), 
+        linear-gradient(-45deg, transparent 75%, #1e293b 75%);
+      background-size: 16px 16px;
+      background-position: 0 0, 0 8px, 8px -8px, -8px 0px;
+      display: flex; align-items: center; justify-content: center;
+      border-radius: 6px; border: 1px solid #475569;
+    }
+    img {
+      width: 120px; height: 120px;
+      image-rendering: pixelated;
+      image-rendering: -moz-crisp-edges;
+      image-rendering: crisp-edges;
+    }
+  </style>
+</head>
+<body>
+  <h1>🗡️ Overspire - 8방향 정품 스프라이트 갤러리</h1>
+  <p>유저 제공 8방향 원본 48×48 도트 스프라이트</p>
+  
+  <div class="compass-grid">
+    <div class="card">
+      <h3>남쪽 / South (정면)</h3>
+      <div class="sprite-box"><img src="south.png"></div>
+    </div>
+    <div class="card">
+      <h3>남동쪽 / South-East</h3>
+      <div class="sprite-box"><img src="south-east.png"></div>
+    </div>
+    <div class="card">
+      <h3>동쪽 / East (우측)</h3>
+      <div class="sprite-box"><img src="east.png"></div>
+    </div>
+    <div class="card">
+      <h3>북동쪽 / North-East</h3>
+      <div class="sprite-box"><img src="north-east.png"></div>
+    </div>
+    <div class="card">
+      <h3>북쪽 / North (뒷모습)</h3>
+      <div class="sprite-box"><img src="north.png"></div>
+    </div>
+    <div class="card">
+      <h3>북서쪽 / North-West</h3>
+      <div class="sprite-box"><img src="north-west.png"></div>
+    </div>
+    <div class="card">
+      <h3>서쪽 / West (좌측)</h3>
+      <div class="sprite-box"><img src="west.png"></div>
+    </div>
+    <div class="card">
+      <h3>남서쪽 / South-West</h3>
+      <div class="sprite-box"><img src="south-west.png"></div>
+    </div>
+  </div>
+</body>
+</html>

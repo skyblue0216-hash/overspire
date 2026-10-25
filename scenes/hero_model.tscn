@@ -1,0 +1,174 @@
+[gd_scene load_steps=19 format=3 uid="uid://c6hero_model_v1"]
+
+[sub_resource type="StandardMaterial3D" id="mat_shirt"]
+albedo_color = Color(0.85, 0.81, 0.72, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="mesh_torso"]
+material = SubResource("mat_shirt")
+size = Vector3(0.42, 0.44, 0.28)
+
+[sub_resource type="BoxMesh" id="mesh_collar"]
+material = SubResource("mat_shirt")
+size = Vector3(0.24, 0.12, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="mat_belt"]
+albedo_color = Color(0.36, 0.23, 0.16, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="mesh_belt"]
+material = SubResource("mat_belt")
+size = Vector3(0.44, 0.08, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="mat_buckle"]
+albedo_color = Color(0.9, 0.66, 0.14, 1)
+metallic = 0.6
+roughness = 0.4
+
+[sub_resource type="BoxMesh" id="mesh_buckle"]
+material = SubResource("mat_buckle")
+size = Vector3(0.12, 0.09, 0.32)
+
+[sub_resource type="StandardMaterial3D" id="mat_skin"]
+albedo_color = Color(1, 0.82, 0.7, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="mesh_head"]
+material = SubResource("mat_skin")
+size = Vector3(0.46, 0.42, 0.4)
+
+[sub_resource type="StandardMaterial3D" id="mat_hair"]
+albedo_color = Color(0.76, 0.78, 0.82, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="mesh_hair_base"]
+material = SubResource("mat_hair")
+size = Vector3(0.52, 0.3, 0.46)
+
+[sub_resource type="BoxMesh" id="mesh_hair_fluff"]
+material = SubResource("mat_hair")
+size = Vector3(0.16, 0.22, 0.16)
+
+[sub_resource type="StandardMaterial3D" id="mat_eye"]
+albedo_color = Color(0, 0.82, 0.88, 1)
+emission_enabled = true
+emission = Color(0, 0.5, 0.6, 1)
+
+[sub_resource type="BoxMesh" id="mesh_eye"]
+material = SubResource("mat_eye")
+size = Vector3(0.08, 0.1, 0.02)
+
+[sub_resource type="StandardMaterial3D" id="mat_pants"]
+albedo_color = Color(0.28, 0.29, 0.19, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="mesh_leg"]
+material = SubResource("mat_pants")
+size = Vector3(0.16, 0.24, 0.18)
+
+[sub_resource type="StandardMaterial3D" id="mat_boots"]
+albedo_color = Color(0.4, 0.25, 0.15, 1)
+roughness = 0.85
+
+[sub_resource type="BoxMesh" id="mesh_boot"]
+material = SubResource("mat_boots")
+size = Vector3(0.17, 0.12, 0.24)
+
+[sub_resource type="StandardMaterial3D" id="mat_shield"]
+albedo_color = Color(0.55, 0.37, 0.24, 1)
+roughness = 0.8
+
+[sub_resource type="BoxMesh" id="mesh_shield"]
+material = SubResource("mat_shield")
+size = Vector3(0.06, 0.36, 0.24)
+
+[sub_resource type="StandardMaterial3D" id="mat_sword"]
+albedo_color = Color(0.82, 0.84, 0.88, 1)
+metallic = 0.5
+roughness = 0.3
+
+[sub_resource type="BoxMesh" id="mesh_sword"]
+material = SubResource("mat_sword")
+size = Vector3(0.04, 0.42, 0.08)
+
+[node name="HeroModel" type="Node3D"]
+
+[node name="Torso" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.52, 0)
+mesh = SubResource("mesh_torso")
+
+[node name="Collar" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.72, 0)
+mesh = SubResource("mesh_collar")
+
+[node name="Belt" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.34, 0)
+mesh = SubResource("mesh_belt")
+
+[node name="Buckle" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.34, 0.01)
+mesh = SubResource("mesh_buckle")
+
+[node name="Head" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.96, 0)
+mesh = SubResource("mesh_head")
+
+[node name="HairBase" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.16, 0)
+mesh = SubResource("mesh_hair_base")
+
+[node name="HairFrontL" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.14, 0.08, 0.22)
+mesh = SubResource("mesh_hair_fluff")
+
+[node name="HairFrontR" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.14, 0.08, 0.22)
+mesh = SubResource("mesh_hair_fluff")
+
+[node name="HairSideL" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.25, 0.1, 0)
+mesh = SubResource("mesh_hair_fluff")
+
+[node name="HairSideR" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.25, 0.1, 0)
+mesh = SubResource("mesh_hair_fluff")
+
+[node name="EyeL" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.12, 0, 0.21)
+mesh = SubResource("mesh_eye")
+
+[node name="EyeR" type="MeshInstance3D" parent="Head"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.12, 0, 0.21)
+mesh = SubResource("mesh_eye")
+
+[node name="ArmL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.28, 0.52, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="Shield" type="MeshInstance3D" parent="ArmL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.06, -0.02, 0.08)
+mesh = SubResource("mesh_shield")
+
+[node name="ArmR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.28, 0.52, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="Sword" type="MeshInstance3D" parent="ArmR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.06, -0.05, 0.1)
+mesh = SubResource("mesh_sword")
+
+[node name="LegL" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, -0.11, 0.2, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="BootL" type="MeshInstance3D" parent="LegL"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0.03)
+mesh = SubResource("mesh_boot")
+
+[node name="LegR" type="MeshInstance3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0.11, 0.2, 0)
+mesh = SubResource("mesh_leg")
+
+[node name="BootR" type="MeshInstance3D" parent="LegR"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, -0.14, 0.03)
+mesh = SubResource("mesh_boot")

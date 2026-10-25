@@ -1,0 +1,443 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Overspire - Layer 1: Hero Locomotion (south.png Direct)</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
+    body, html { width: 100%; height: 100%; overflow: hidden; background: #0c0e14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    
+    #canvas-container { 
+      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    }
+    
+    canvas {
+      image-rendering: -moz-crisp-edges;
+      image-rendering: -webkit-crisp-edges;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+    }
+
+    /* HUD */
+    #hud {
+      position: absolute; top: 12px; left: 12px;
+      background: rgba(12, 16, 24, 0.92);
+      border: 1px solid rgba(0, 208, 224, 0.4);
+      border-radius: 8px;
+      padding: 10px 14px;
+      color: #eee;
+      font-size: 13px;
+      line-height: 1.5;
+      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      z-index: 10;
+    }
+    #hud h1 { font-size: 14px; color: #00e5ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
+    #hud .stats { color: #94a3b8; font-family: monospace; font-size: 12px; margin-top: 4px; }
+    
+    /* Viewport angle buttons */
+    .btn-row { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+    .btn {
+      padding: 5px 10px; border-radius: 4px; background: #1e293b; color: #cbd5e1;
+      border: 1px solid #475569; font-size: 11px; cursor: pointer; font-weight: 500;
+    }
+    .btn.active {
+      background: #0284c7; color: #fff; border-color: #38bdf8; font-weight: bold;
+    }
+
+    /* Guide */
+    #guide {
+      position: absolute; bottom: 12px; right: 12px;
+      background: rgba(12, 16, 24, 0.85);
+      border-radius: 6px; padding: 6px 12px;
+      color: #94a3b8; font-size: 11px; pointer-events: none;
+    }
+
+    /* Virtual Joystick */
+    #joystick-base {
+      position: absolute; width: 130px; height: 130px; border-radius: 50%;
+      background: rgba(15, 23, 42, 0.45); border: 2px solid rgba(0, 229, 255, 0.55);
+      transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 5;
+    }
+    #joystick-knob {
+      position: absolute; width: 52px; height: 52px; border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #38bdf8, #0284c7);
+      border: 2px solid #ffffff; transform: translate(-50%, -50%);
+      pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.6); display: none; z-index: 6;
+    }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+</head>
+<body>
+  <div id="canvas-container"></div>
+
+  <div id="hud">
+    <h1>⚔️ Overspire — 주인공 비주얼 검증</h1>
+    <div>조작: <span style="color:#ffd2b2;">WASD / 방향키</span> 또는 <span style="color:#38bdf8;">화면 좌측 터치 스틱</span></div>
+    <div class="stats" id="stats-text">위치: (0.0, 0.0) | 속도: 0.0 m/s | 텍스처: 로딩 중...</div>
+    
+    <div style="font-size: 11px; color: #38bdf8; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
+      <span>📷 뷰포트: 클래식 2.5D 탑다운 58° 직교 투영 고정</span>
+    </div>
+  </div>
+
+  <div id="guide">8-Directional Sprites (Top-Down 58° Fixed)</div>
+
+  <div id="joystick-base"></div>
+  <div id="joystick-knob"></div>
+
+  <script>
+    // --- 1. Three.js Orthographic Scene ---
+    const container = document.getElementById('canvas-container');
+    const viewSize = 7.2; // Zoomed in so character is large, clear, and prominent
+    const scene = new THREE.Scene();
+    scene.background = new THREE.Color(0x0f1219);
+
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let aspect = width / height;
+
+    const camera = new THREE.OrthographicCamera(
+      -viewSize * aspect / 2, viewSize * aspect / 2,
+      viewSize / 2, -viewSize / 2,
+      0.1, 100
+    );
+
+    // Fixed Top-Down Orthogonal Viewport (Pitch: 56.6°, Height: 8.5, Distance: 5.2)
+    const camHeight = 8.5;
+    const camDistance = 5.2;
+    const PITCH_ANGLE = Math.atan2(camHeight - 0.6, camDistance);
+    camera.position.set(0, camHeight, camDistance);
+    camera.rotation.set(-PITCH_ANGLE, 0, 0);
+
+    const renderer = new THREE.WebGLRenderer({ antialias: false, powerPreference: "high-performance" });
+    renderer.shadowMap.enabled = true;
+    renderer.shadowMap.type = THREE.BasicShadowMap;
+    container.appendChild(renderer.domElement);
+
+    function applyResolution() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      aspect = width / height;
+
+      camera.left = -viewSize * aspect / 2;
+      camera.right = viewSize * aspect / 2;
+      camera.top = viewSize / 2;
+      camera.bottom = -viewSize / 2;
+      camera.updateProjectionMatrix();
+
+      // Sharp retro pixel scaling
+      const scale = Math.max(1, Math.floor(height / 300));
+      renderer.setSize(Math.round(width / scale), Math.round(height / scale), false);
+      renderer.domElement.style.width = width + 'px';
+      renderer.domElement.style.height = height + 'px';
+    }
+    applyResolution();
+
+    // --- 2. Lighting ---
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
+    scene.add(ambientLight);
+
+    const dirLight = new THREE.DirectionalLight(0xfff7e6, 1.2);
+    dirLight.position.set(5, 12, 6);
+    dirLight.castShadow = true;
+    dirLight.shadow.mapSize.width = 512;
+    dirLight.shadow.mapSize.height = 512;
+    scene.add(dirLight);
+
+    // --- 3. Dungeon Arena ---
+    const floorGroup = new THREE.Group();
+    scene.add(floorGroup);
+
+    const tileGeo = new THREE.PlaneGeometry(1.0, 1.0);
+    const tileMatA = new THREE.MeshLambertMaterial({ color: 0x242833 });
+    const tileMatB = new THREE.MeshLambertMaterial({ color: 0x1d212b });
+
+    for (let x = -8; x <= 8; x++) {
+      for (let z = -8; z <= 8; z++) {
+        const mat = (Math.abs(x + z) % 2 === 0) ? tileMatA : tileMatB;
+        const tile = new THREE.Mesh(tileGeo, mat);
+        tile.position.set(x, 0, z);
+        tile.rotation.x = -Math.PI / 2;
+        tile.receiveShadow = true;
+        floorGroup.add(tile);
+      }
+    }
+
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x14171f });
+    const createWall = (w, h, d, x, z) => {
+      const geo = new THREE.BoxGeometry(w, h, d);
+      const mesh = new THREE.Mesh(geo, wallMat);
+      mesh.position.set(x, h/2, z);
+      mesh.castShadow = true;
+      mesh.receiveShadow = true;
+      scene.add(mesh);
+    };
+    createWall(18, 1.8, 0.8, 0, -9);
+    createWall(18, 1.8, 0.8, 0, 9);
+    createWall(0.8, 1.8, 18, -9, 0);
+    createWall(0.8, 1.8, 18, 9, 0);
+
+    const pillars = [
+      { x: -3.5, z: -3.5, r: 0.55 },
+      { x: 3.5, z: -3.5, r: 0.55 },
+      { x: -3.5, z: 3.5, r: 0.55 },
+      { x: 3.5, z: 3.5, r: 0.55 }
+    ];
+    const pillarMat = new THREE.MeshLambertMaterial({ color: 0x363c48 });
+    pillars.forEach(p => {
+      const geo = new THREE.CylinderGeometry(0.5, 0.55, 2.0, 12);
+      const m = new THREE.Mesh(geo, pillarMat);
+      m.position.set(p.x, 1.0, p.z);
+      m.castShadow = true;
+      m.receiveShadow = true;
+      scene.add(m);
+    });
+
+    // --- 4. Hero Sprite (Direct south.png 100% Authentic) ---
+    const heroGroup = new THREE.Group();
+    scene.add(heroGroup);
+
+    // Oval Ground Shadow
+    const shadowGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.01, 16);
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x05070a, transparent: true, opacity: 0.6 });
+    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
+    shadowMesh.position.y = 0.01;
+    heroGroup.add(shadowMesh);
+
+    // Create Sprite Material
+    const spriteMat = new THREE.MeshBasicMaterial({
+      color: 0xffffff,
+      transparent: true,
+      alphaTest: 0.05,
+      side: THREE.DoubleSide
+    });
+
+    // 1.4m x 1.4m Plane for 48x48 pixel hero
+    const spriteGeo = new THREE.PlaneGeometry(1.4, 1.4);
+    const spriteMesh = new THREE.Mesh(spriteGeo, spriteMat);
+    spriteMesh.position.y = 0.70; // Bottom of sprite rests on y=0 ground
+    heroGroup.add(spriteMesh);
+
+    const dirKeys = [
+      'south', 'south-east', 'east', 'north-east',
+      'north', 'north-west', 'west', 'south-west'
+    ];
+    const textures = {};
+    let loadedCount = 0;
+    const textureLoader = new THREE.TextureLoader();
+
+    dirKeys.forEach(key => {
+      textureLoader.load(
+        `${key}.png`,
+        (tex) => {
+          tex.magFilter = THREE.NearestFilter;
+          tex.minFilter = THREE.NearestFilter;
+          tex.generateMipmaps = false;
+          tex.colorSpace = THREE.SRGBColorSpace;
+          textures[key] = tex;
+          loadedCount++;
+          if (key === 'south') {
+            spriteMat.map = tex;
+            spriteMat.needsUpdate = true;
+          }
+          console.log(`${key}.png loaded successfully!`);
+        },
+        undefined,
+        (err) => {
+          console.error(`Failed to load ${key}.png:`, err);
+        }
+      );
+    });
+
+    // --- 5. Locomotion Kinematics ---
+    const MAX_SPEED = 5.2;
+    const ACCEL = 42.0;
+    const FRICTION = 48.0;
+    const HERO_RADIUS = 0.35;
+
+    let posX = 0.0, posZ = 0.0;
+    let velX = 0.0, velZ = 0.0;
+    let facingX = 0.0, facingZ = 1.0;
+    let animTime = 0.0;
+    let stepTimer = 0.0;
+    const STEP_RATE = 1.0 / 12.0; // 12 FPS Walk Cycle
+
+    let currentFlip = 1.0; // 1.0 (Right/South) or -1.0 (Left)
+
+    const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
+    let joyX = 0.0, joyY = 0.0;
+
+    window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; });
+    window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+
+    // Touch Virtual Joystick
+    const joyBase = document.getElementById('joystick-base');
+    const joyKnob = document.getElementById('joystick-knob');
+    let isTouching = false;
+    let touchStartX = 0, touchStartY = 0;
+
+    function handleStart(x, y) {
+      if (x < window.innerWidth * 0.55) {
+        isTouching = true;
+        touchStartX = x; touchStartY = y;
+        joyBase.style.display = 'block'; joyBase.style.left = x + 'px'; joyBase.style.top = y + 'px';
+        joyKnob.style.display = 'block'; joyKnob.style.left = x + 'px'; joyKnob.style.top = y + 'px';
+      }
+    }
+    function handleMove(x, y) {
+      if (!isTouching) return;
+      let dx = x - touchStartX, dy = y - touchStartY;
+      const maxDist = 65.0;
+      const dist = Math.hypot(dx, dy);
+      if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
+      joyKnob.style.left = (touchStartX + dx) + 'px';
+      joyKnob.style.top = (touchStartY + dy) + 'px';
+      const norm = dist / maxDist;
+      if (norm > 0.15) { joyX = dx / maxDist; joyY = dy / maxDist; }
+      else { joyX = 0; joyY = 0; }
+    }
+    function handleEnd() {
+      isTouching = false; joyX = 0; joyY = 0;
+      joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+    }
+
+    window.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX, e.touches[0].clientY); });
+    window.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX, e.touches[0].clientY); });
+    window.addEventListener('touchend', handleEnd);
+    window.addEventListener('mousedown', e => { handleStart(e.clientX, e.clientY); });
+    window.addEventListener('mousemove', e => { handleMove(e.clientX, e.clientY); });
+    window.addEventListener('mouseup', handleEnd);
+
+    // --- 6. Main Render Loop ---
+    let lastTime = performance.now();
+    const statsText = document.getElementById('stats-text');
+
+    function animate(currentTime) {
+      requestAnimationFrame(animate);
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+      lastTime = currentTime;
+
+      // Calculate Input
+      let inputX = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0);
+      let inputZ = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0);
+
+      if (Math.hypot(joyX, joyY) > 0.1) {
+        inputX = joyX;
+        inputZ = joyY;
+      }
+
+      const inputLen = Math.hypot(inputX, inputZ);
+      let targetDirX = 0, targetDirZ = 0;
+      if (inputLen > 0.05) {
+        targetDirX = inputX / Math.max(1.0, inputLen);
+        targetDirZ = inputZ / Math.max(1.0, inputLen);
+      }
+
+      // Kinematics: Acceleration & Braking
+      if (inputLen > 0.05) {
+        velX = moveToward(velX, targetDirX * MAX_SPEED, ACCEL * dt);
+        velZ = moveToward(velZ, targetDirZ * MAX_SPEED, ACCEL * dt);
+
+        facingX = targetDirX;
+        facingZ = targetDirZ;
+
+        // 12 FPS Stepped Chibi Bounce Walk
+        stepTimer += dt;
+        if (stepTimer >= STEP_RATE) {
+          stepTimer = 0.0;
+          animTime += STEP_RATE * 14.0;
+          const bounce = Math.abs(Math.sin(animTime)) * 0.08;
+          const squash = 1.0 + Math.sin(animTime) * 0.05;
+          spriteMesh.position.y = 0.70 + bounce;
+          spriteMesh.scale.set(1.4, 1.4 * squash, 1.4);
+        }
+      } else {
+        velX = moveToward(velX, 0, FRICTION * dt);
+        velZ = moveToward(velZ, 0, FRICTION * dt);
+
+        spriteMesh.position.y = 0.70;
+        spriteMesh.scale.set(1.4, 1.4, 1.4);
+        animTime = 0.0;
+      }
+
+      // 8-Directional Authentic Sprite Selection
+      const deg = Math.atan2(facingX, facingZ) * (180 / Math.PI);
+      let dirKey = 'south';
+      let dirName = '남쪽 (정면)';
+
+      if (deg >= -22.5 && deg < 22.5) {
+        dirKey = 'south'; dirName = '남쪽 (정면)';
+      } else if (deg >= 22.5 && deg < 67.5) {
+        dirKey = 'south-east'; dirName = '남동쪽';
+      } else if (deg >= 67.5 && deg < 112.5) {
+        dirKey = 'east'; dirName = '동쪽 (우측)';
+      } else if (deg >= 112.5 && deg < 157.5) {
+        dirKey = 'north-east'; dirName = '북동쪽';
+      } else if (deg >= 157.5 || deg < -157.5) {
+        dirKey = 'north'; dirName = '북쪽 (뒷모습)';
+      } else if (deg >= -157.5 && deg < -112.5) {
+        dirKey = 'north-west'; dirName = '북서쪽';
+      } else if (deg >= -112.5 && deg < -67.5) {
+        dirKey = 'west'; dirName = '서쪽 (좌측)';
+      } else {
+        dirKey = 'south-west'; dirName = '남서쪽';
+      }
+
+      const activeTex = textures[dirKey] || textures.south;
+      if (activeTex && spriteMat.map !== activeTex) {
+        spriteMat.map = activeTex;
+        spriteMat.needsUpdate = true;
+      }
+
+      // Sprite Billboard Orientation: Always faces camera directly!
+      spriteMesh.quaternion.copy(camera.quaternion);
+
+      // Boundaries & Obstacle Collisions
+      let nextX = posX + velX * dt;
+      let nextZ = posZ + velZ * dt;
+
+      nextX = Math.max(-8.2, Math.min(8.2, nextX));
+      nextZ = Math.max(-8.2, Math.min(8.2, nextZ));
+
+      pillars.forEach(p => {
+        const dx = nextX - p.x;
+        const dz = nextZ - p.z;
+        const dist = Math.hypot(dx, dz);
+        const minDist = p.r + HERO_RADIUS;
+        if (dist < minDist && dist > 0.001) {
+          const pushX = (dx / dist) * (minDist - dist);
+          const pushZ = (dz / dist) * (minDist - dist);
+          nextX += pushX;
+          nextZ += pushZ;
+        }
+      });
+
+      posX = nextX;
+      posZ = nextZ;
+      heroGroup.position.set(posX, 0, posZ);
+
+      // Camera Smooth Tracking (Translation Only - ZERO Rotation / Map Tilt)
+      camera.position.x += (posX - camera.position.x) * 6.5 * dt;
+      camera.position.y = camHeight;
+      camera.position.z += ((posZ + camDistance) - camera.position.z) * 6.5 * dt;
+      // Absolute lock: zero yaw, zero roll, purely parallel map view
+      camera.rotation.set(-PITCH_ANGLE, 0, 0);
+
+      // Stats
+      const speed = Math.hypot(velX, velZ);
+      statsText.textContent = `위치: (${posX.toFixed(1)}, ${posZ.toFixed(1)}) | 속도: ${speed.toFixed(1)} m/s | 방향: ${dirName} (${dirKey}.png) | 텍스처: ${loadedCount >= 8 ? '8방향 원본 스프라이트 100% 가동' : `${loadedCount}/8 로딩 중`}`;
+
+      renderer.render(scene, camera);
+    }
+
+    function moveToward(current, target, maxDelta) {
+      if (Math.abs(target - current) <= maxDelta) return target;
+      return current + Math.sign(target - current) * maxDelta;
+    }
+
+    window.addEventListener('resize', applyResolution);
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>
