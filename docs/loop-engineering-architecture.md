@@ -8,7 +8,8 @@
 
 ## 1. 아키텍처 개요 및 루프 계층 구조 (Loop Hierarchy)
 
-<Overspire>는 **"이동이 곧 공격"**이 되는 2D 탑다운 범프 액션 로그라이크입니다.  
+<Overspire>는 **"이동이 곧 공격"**이 되는 3D 로우폴리(2.5D 스타일) 탑다운 범프 액션 로그라이크입니다.  
+그래픽과 연출은 Godot 3D 기반의 로우폴리 모델과 플랫/툰 셰이딩을 사용하되, 게임플레이 물리 및 충돌 판정은 $XZ$ 수평 평면($Y=0$ 고정)에서 2D 탑다운 규칙을 엄격하게 유지합니다.  
 본 아키텍처는 게임의 생명주기를 5개의 독립적이면서도 유기적인 루프 계층으로 분할하고, 향후 100층, 수십 종의 무기군, 적 아키타입, 룬/접두사 시스템이 확장되더라도 기존 코어 루프를 수정하지 않고 플러그인 형태로 결합되는 **지속 발전 루프(Expansion Loop)**를 보장합니다.
 
 ```mermaid
@@ -51,20 +52,21 @@ flowchart TD
 
 Micro Loop는 조작감과 전투의 물리적 쾌감을 결정하는 최하위 루프입니다. 일반 액션 게임의 "공격 버튼"을 대체하여, 플레이어의 이동 속도 벡터와 적의 방향 벡터 간 기하학적 접촉을 실시간 해석합니다.
 
-#### (1) 각도 판정 수학 모델 (Kinematic Angle Resolution)
+#### (1) 각도 판정 수학 모델 (Kinematic Angle Resolution on XZ Plane)
+- **평면 구속 불변식**: 3D 공간이지만 충돌/이동 연산은 $Y$축을 배제한 $XZ$ 수평 평면(투영 2D: $(x, z)$)에서 수행하여 높낮이 오류를 원천 방지합니다.
 - **방향 벡터**:
-  - 적 전방 방향 단위 벡터: $\vec{F}_{target}$ (적의 `FacingDirection`)
-  - 플레이어 충돌 접근 단위 벡터: $\vec{V}_{contact} = \text{normalize}(\vec{P}_{hero} - \vec{P}_{target})$
+  - 적 전방 방향 단위 벡터: $\vec{F}_{target}$ (적의 `FacingDirection`, 수평면 $(F_x, F_z)$)
+  - 플레이어 충돌 접근 단위 벡터: $\vec{V}_{contact} = \text{normalize}(\vec{P}_{hero} - \vec{P}_{target})$ (수평면 좌표 기준)
 - **충돌 각도 평가 ($\cos \theta$)**:
   $$\cos \theta = \vec{F}_{target} \cdot \vec{V}_{contact}$$
   - $\theta$는 적의 정면 시선과 플레이어가 들이받은 접촉각 사이의 각도입니다.
 - **판정 분기 (`Advantage` vs `Frontal Clash`)**:
   - **정면 충돌 (Frontal Clash)**: $\cos \theta \ge \cos(45^\circ) \approx 0.707$ (적의 전방 $90^\circ$ 원뿔 내부)
     - 판정: **상호 피해(Mutual Damage)**. 적과 용사 모두 피해를 입음.
-    - 피드백: 용사 스프라이트 점멸(Flash 3~5프레임), 경고성 피격음.
+    - 피드백: 용사 3D 모델 점멸/머티리얼 Flash(3~5프레임), 경고성 피격음.
   - **유리한 각도 (Advantageous Flank / Rear)**: $\cos \theta < \cos(45^\circ)$ (적의 측면 $270^\circ$)
     - 판정: **일방 타격(Unilateral Strike)**. 용사는 0 피해, 적에게만 피해 부여.
-    - 피드백: 적에게 큰 넉백, 임팩트 스파크, 타격 SFX, 1~2px 마이크로 화면 쉐이크.
+    - 피드백: 적에게 큰 넉백, 임팩트 스파크 파티클, 타격 SFX, 1~2px 마이크로 화면 쉐이크.
 
 #### (2) 피해 계산 공식 (Damage Dynamics)
 고정 타격 횟수가 아닌 스탯 기반 연속성 감쇄 공식을 적용합니다:
