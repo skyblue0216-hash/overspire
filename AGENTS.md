@@ -1,0 +1,32 @@
+# Overspire Agent Loop Engineering Protocol (ALEP)
+
+모든 AI 코딩 에이전트는 <Overspire> 코드베이스 작업 시 다음 헌장을 절대적으로 준수해야 합니다.
+세부 설계 명세는 `docs/loop-engineering-architecture.md`를 참조하십시오.
+
+---
+
+### [규칙 1] 계층 침범 및 순서 건너뛰기 절대 금지 (Bottom-Up Verification Only)
+- 구현 작업은 반드시 **Layer 1: Micro(0.1s~1.0s) -> Layer 2: Tactical(5~30s) -> Layer 3: Session(2~3m) -> Layer 4: Meta -> Layer 5: Expansion** 순서로만 진행합니다.
+- 상위 루프 작업에 착수하기 전, 직전 하위 루프의 테스트 하네스 통과 로그를 증빙해야 합니다.
+  - 예: Micro Loop(각도 충돌/넉백/히트스탑) 미완성 상태에서 Slime AI(Tactical) 작성 금지.
+  - 예: Tactical Loop(단일/무리 전투) 미검증 상태에서 던전 생성(Session) 작성 금지.
+
+### [규칙 2] 루프 관심사 분리 및 단방향 의존성 (Separation of Concerns)
+- 하위 루프는 절대로 상위 루프의 클래스나 상태를 import/reference 하지 않습니다.
+- `core/physics/bump`는 `monsters/slime`이나 `dungeon/floor`의 구체 타입을 몰라야 하며, 오직 `ICombatEntity` 및 기하학적 벡터 수학만 처리합니다.
+- 계층 간 통신은 순수 이벤트 스트림(`EntityBumpedEvent`, `MonsterKilledEvent`, `SessionEndedEvent` 등)을 통해서만 결합을 최소화합니다.
+
+### [규칙 3] 하위 루프 독립 테스트 하네스 의무화 (Isolated Test Harness)
+- 모든 루프는 게임 씬 전체를 구동하지 않고도 터미널/헤드리스 환경에서 실행 가능한 독립 테스트 러너를 동봉해야 합니다.
+  - `Micro Loop`: 각도별($0^\circ, 30^\circ, 45^\circ, 90^\circ, 180^\circ$) 충돌 시 일방 타격 vs 정면 상호 타격 및 분리 임펄스(무적 시간 없이도 1회만 정확히 발생하는지) 검증.
+  - `Tactical Loop`: 슬라임 선회 속도($\omega = 120^\circ/s$)에 따른 텔레그래프-회피-측면 카운터 가능 시간(Window) 검증.
+  - `Session Loop`: 생성된 던전의 열쇠 획득 가능성 및 계단 도달성 1,000회 시드 무결성 시뮬레이션.
+  - `Meta Loop`: 사망 시 선택 보존(장비1+스킬1) 및 다음 회차 유해(Remains) 1개 정확 복원/재사망 시 덮어쓰기 무결성.
+
+### [규칙 4] 개방-폐쇄 원칙 (OCP) 강제 (Zero Core Switch)
+- 신규 무기군, 적 아키타입, 룬/접두사, 환경 기믹 추가 시 기존 코어 매니저를 수정하는 `switch(itemType)` 작성을 금지합니다.
+- 확장은 반드시 `IBumpInterceptor`, `IArchetypeBrain`, `IAffixRule`, `ITileGimmick` 인터페이스를 구현하고 레지스트리에 등록하는 방식으로만 수행합니다.
+
+### [규칙 5] UI 및 일시정지(Zero-Risk Pause) 불변식
+- 인벤토리 및 바닥 장비 비교 UI가 열릴 때, 물리/AI 시뮬레이션 루프는 반드시 완전히 일시정지되어야 합니다.
+- 플레이어가 아이템을 비교하는 동안 적이 다가오거나 피해를 입히는 코드는 치명적 결함(Defect)으로 간주합니다.
