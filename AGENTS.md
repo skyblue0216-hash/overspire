@@ -7,14 +7,15 @@
 
 ### [규칙 0] 루프 작업 전 독립 브랜치 생성 의무화 (Branch-per-Loop Isolation)
 - 각 루프 계층(Layer) 작업 또는 세부 기능 구현에 착수하기 전, 반드시 최신 기준 브랜치에서 **해당 루프 전용 브랜치를 새로 생성(`git checkout -b <branch-name>`)하고 전환한 후** 작업을 진행해야 합니다.
-  - 브랜치 명명 규칙: `loop/<layer-number>-<feature-name>` (예: `loop/l1-micro-bump`, `loop/l2-slime-ai`, `loop/l3-session-dungeon`)
+  - 브랜치 명명 규칙: `loop/<layer-number>-<feature-name>` (예: `loop/l1-hero-locomotion`, `loop/l2-micro-bump`, `loop/l3-slime-ai`)
 - `main` 브랜치에 직접 코드를 커밋하거나 검증되지 않은 코드를 작성하는 행위를 엄격히 금지합니다.
 - 해당 루프의 독립 테스트 하네스가 100% 통과(Green)하고 검증이 완료된 후에만 병합(Merge) 또는 PR을 진행합니다.
 
 ### [규칙 1] 계층 침범 및 순서 건너뛰기 절대 금지 (Bottom-Up Verification Only)
-- 구현 작업은 반드시 **Layer 1: Micro(0.1s~1.0s) -> Layer 2: Tactical(5~30s) -> Layer 3: Session(2~3m) -> Layer 4: Meta -> Layer 5: Expansion** 순서로만 진행합니다.
+- 구현 작업은 반드시 **Layer 1: Hero Locomotion & Visual(주인공 외형/8방향 이동) -> Layer 2: Micro Bump(0.1s~1.0s, 충돌/넉백/히트스탑) -> Layer 3: Tactical(5~30s, 슬라임 AI) -> Layer 4: Session(2~3m, 던전/열쇠/파밍) -> Layer 5: Meta(사망 보존/유해) -> Layer 6: Expansion** 순서로만 진행합니다.
 - 상위 루프 작업에 착수하기 전, 직전 하위 루프의 테스트 하네스 통과 로그를 증빙해야 합니다.
-  - 예: Micro Loop(각도 충돌/넉백/히트스탑) 미완성 상태에서 Slime AI(Tactical) 작성 금지.
+  - 예: Hero Locomotion(주인공 모습/이동 조작감) 미완성 상태에서 Bump Combat(Layer 2) 작성 금지.
+  - 예: Micro Bump(각도 충돌/넉백/히트스탑) 미완성 상태에서 Slime AI(Tactical) 작성 금지.
   - 예: Tactical Loop(단일/무리 전투) 미검증 상태에서 던전 생성(Session) 작성 금지.
 
 ### [규칙 2] 루프 관심사 분리 및 단방향 의존성 (Separation of Concerns)
@@ -24,7 +25,8 @@
 
 ### [규칙 3] 하위 루프 독립 테스트 하네스 의무화 (Isolated Test Harness)
 - 모든 루프는 게임 씬 전체를 구동하지 않고도 터미널/헤드리스 환경에서 실행 가능한 독립 테스트 러너를 동봉해야 합니다.
-  - `Micro Loop`: 각도별($0^\circ, 30^\circ, 45^\circ, 90^\circ, 180^\circ$) 충돌 시 일방 타격 vs 정면 상호 타격 및 분리 임펄스(무적 시간 없이도 1회만 정확히 발생하는지) 검증.
+  - `Hero Locomotion Loop`: 8방향 이동, 가속/감속, 회전(Facing Direction), 직교 카메라 추적 무결성 검증.
+  - `Micro Bump Loop`: 각도별($0^\circ, 30^\circ, 45^\circ, 90^\circ, 180^\circ$) 충돌 시 일방 타격 vs 정면 상호 타격 및 분리 임펄스(무적 시간 없이도 1회만 정확히 발생하는지) 검증.
   - `Tactical Loop`: 슬라임 선회 속도($\omega = 120^\circ/s$)에 따른 텔레그래프-회피-측면 카운터 가능 시간(Window) 검증.
   - `Session Loop`: 생성된 던전의 열쇠 획득 가능성 및 계단 도달성 1,000회 시드 무결성 시뮬레이션.
   - `Meta Loop`: 사망 시 선택 보존(장비1+스킬1) 및 다음 회차 유해(Remains) 1개 정확 복원/재사망 시 덮어쓰기 무결성.
