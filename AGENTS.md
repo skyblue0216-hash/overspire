@@ -5,6 +5,12 @@
 
 ---
 
+### [규칙 0] 루프 작업 전 독립 브랜치 생성 의무화 (Branch-per-Loop Isolation)
+- 각 루프 계층(Layer) 작업 또는 세부 기능 구현에 착수하기 전, 반드시 최신 기준 브랜치에서 **해당 루프 전용 브랜치를 새로 생성(`git checkout -b <branch-name>`)하고 전환한 후** 작업을 진행해야 합니다.
+  - 브랜치 명명 규칙: `loop/<layer-number>-<feature-name>` (예: `loop/l1-micro-bump`, `loop/l2-slime-ai`, `loop/l3-session-dungeon`)
+- `main` 브랜치에 직접 코드를 커밋하거나 검증되지 않은 코드를 작성하는 행위를 엄격히 금지합니다.
+- 해당 루프의 독립 테스트 하네스가 100% 통과(Green)하고 검증이 완료된 후에만 병합(Merge) 또는 PR을 진행합니다.
+
 ### [규칙 1] 계층 침범 및 순서 건너뛰기 절대 금지 (Bottom-Up Verification Only)
 - 구현 작업은 반드시 **Layer 1: Micro(0.1s~1.0s) -> Layer 2: Tactical(5~30s) -> Layer 3: Session(2~3m) -> Layer 4: Meta -> Layer 5: Expansion** 순서로만 진행합니다.
 - 상위 루프 작업에 착수하기 전, 직전 하위 루프의 테스트 하네스 통과 로그를 증빙해야 합니다.

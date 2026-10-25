@@ -319,8 +319,12 @@ public readonly struct SessionEndedEvent { public bool Cleared; public int Floor
 
 AI 코딩 에이전트들이 기능 구현 시 스코프를 건너뛰거나, 하위 검증 없이 복잡한 상위 시스템을 만들어 아키텍처를 붕괴시키는 것을 방지하는 엄격한 프로토콜입니다.
 
-### 4.1 4대 불변 원칙 (The 4 Core Commandments)
+### 4.1 핵심 불변 원칙 (The Core Commandments)
 
+0. **루프 단위 독립 브랜치 격리 (Branch-per-Loop Isolation)**:
+   - 각 루프 계층(Layer) 작업 또는 세부 기능 구현에 착수하기 전, 반드시 최신 기준 브랜치에서 해당 루프 전용 브랜치를 새로 생성(`git checkout -b loop/<layer-name>`)하고 전환한 후 작업한다.
+   - `main` 브랜치에 직접 코드를 커밋하거나 검증되지 않은 코드를 푸시하는 행위를 엄격히 금지한다.
+   - 해당 루프의 독립 테스트 하네스가 100% 통과(Green)하고 검증이 완료된 시점에만 상위 브랜치로 병합(Merge)한다.
 1. **상향식 선행 검증 원칙 (Bottom-Up Verification Only)**:
    - 하위 루프의 단위 하네스가 100% 그린(통과)되지 않으면 상위 루프 코드를 1줄도 작성할 수 없다.
    - Micro(각도 충돌/무-무적 분리) 미완성 상태에서 Slime AI(Tactical) 작성 금지.
