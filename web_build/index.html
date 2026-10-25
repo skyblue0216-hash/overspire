@@ -79,9 +79,34 @@
     <div style="font-size: 11px; color: #38bdf8; margin-top: 6px; display: flex; align-items: center; gap: 4px;">
       <span>📷 뷰포트: 클래식 2.5D 탑다운 58° 직교 투영 고정</span>
     </div>
+
+    <!-- Real-time ViewSize Zoom Controller -->
+    <div class="viewsize-control" style="margin-top: 10px; padding-top: 8px; border-top: 1px solid rgba(255,255,255,0.12);">
+      <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 6px;">
+        <span style="font-weight: bold; color: #38bdf8; font-size: 12px;">🔍 뷰사이즈(viewSize) 직접 조절:</span>
+        <div style="display: flex; align-items: center; gap: 4px;">
+          <input type="number" id="view-size-input" value="14.4" min="4" max="50" step="0.5" 
+                 onkeydown="event.stopPropagation()"
+                 oninput="updateViewSize(this.value)"
+                 style="width: 65px; background: #1e293b; color: #38bdf8; border: 1px solid #475569; border-radius: 4px; padding: 2px 6px; font-weight: bold; text-align: center; font-size: 13px;">
+          <span style="color: #94a3b8; font-size: 12px;">m</span>
+        </div>
+      </div>
+      <input type="range" id="view-size-slider" value="14.4" min="6" max="36" step="0.2" 
+             oninput="updateViewSize(this.value)"
+             style="width: 100%; accent-color: #0284c7; cursor: pointer; margin-bottom: 6px;">
+      <div class="btn-row" style="display: flex; gap: 4px; flex-wrap: wrap;">
+        <button class="btn" onclick="updateViewSize(7.2)">7.2 (클로즈업)</button>
+        <button class="btn" onclick="updateViewSize(12.0)">12.0</button>
+        <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4 (기본)</button>
+        <button class="btn" onclick="updateViewSize(19.2)">19.2</button>
+        <button class="btn" onclick="updateViewSize(24.0)">24.0</button>
+        <button class="btn" onclick="updateViewSize(28.8)">28.8 (와이드)</button>
+      </div>
+    </div>
   </div>
 
-  <div id="guide">8-Directional Sprites (Top-Down 58° Fixed)</div>
+  <div id="guide">8-Directional Sprites (Top-Down 58° Fixed, ViewSize 14.4m)</div>
 
   <div id="joystick-base"></div>
   <div id="joystick-knob"></div>
@@ -89,7 +114,7 @@
   <script>
     // --- 1. Three.js Orthographic Scene ---
     const container = document.getElementById('canvas-container');
-    const viewSize = 7.2; // Zoomed in so character is large, clear, and prominent
+    let viewSize = 14.4; // Default viewSize (14.4m)
     const scene = new THREE.Scene();
     scene.background = new THREE.Color(0x0f1219);
 
@@ -133,6 +158,24 @@
       renderer.domElement.style.height = height + 'px';
     }
     applyResolution();
+
+    function updateViewSize(newVal) {
+      const val = Math.max(4.0, Math.min(60.0, parseFloat(newVal) || 14.4));
+      viewSize = val;
+      const inp = document.getElementById('view-size-input');
+      const sld = document.getElementById('view-size-slider');
+      if (inp && document.activeElement !== inp) inp.value = val.toFixed(1);
+      if (sld) sld.value = val;
+      
+      document.querySelectorAll('.btn-row .btn').forEach(b => {
+        b.classList.remove('active');
+        const num = parseFloat(b.textContent);
+        if (!isNaN(num) && Math.abs(num - val) < 0.2) {
+          b.classList.add('active');
+        }
+      });
+      applyResolution();
+    }
 
     // --- 2. Lighting ---
     const ambientLight = new THREE.AmbientLight(0xffffff, 1.4);
