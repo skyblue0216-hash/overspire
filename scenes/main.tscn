@@ -3,6 +3,7 @@
 [ext_resource type="Script" path="res://scripts/main.gd" id="1_main_script"]
 [ext_resource type="PackedScene" path="res://scenes/hero.tscn" id="2_hero_scene"]
 [ext_resource type="Script" path="res://scripts/virtual_joystick.gd" id="3_joystick_script"]
+[ext_resource type="PackedScene" path="res://scenes/training_dummy.tscn" id="4_dummy_scene"]
 
 [sub_resource type="Environment" id="Environment_main"]
 background_mode = 1
@@ -72,6 +73,9 @@ projection = 1
 size = 14.4
 
 [node name="Hero" parent="." instance=ExtResource("2_hero_scene")]
+
+[node name="TrainingDummy" parent="." instance=ExtResource("4_dummy_scene")]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, -2.5)
 
 [node name="Arena" type="Node3D" parent="."]
 
@@ -189,7 +193,7 @@ offset_left = 10.0
 offset_top = 4.0
 offset_right = 340.0
 offset_bottom = 26.0
-text = "⚔️ Overspire - Layer 1: Hero Locomotion"
+text = "⚔️ Overspire - Layer 2: Micro Bump Loop"
 
 [node name="InfoLabel" type="Label" parent="UI/HUD/HeaderPanel"]
 layout_mode = 0

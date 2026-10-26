@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Overspire - Layer 1: Hero Locomotion (south.png Direct)</title>
+  <title>Overspire - Layer 2: Micro Bump Combat</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #0c0e14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -27,38 +27,81 @@
     /* HUD */
     #hud {
       position: absolute; top: 10px; left: 10px;
-      max-width: 380px; width: calc(100vw - 20px);
-      background: rgba(12, 16, 24, 0.88);
-      border: 1px solid rgba(0, 208, 224, 0.35);
+      max-width: 400px; width: calc(100vw - 20px);
+      background: rgba(12, 16, 24, 0.90);
+      border: 1px solid rgba(0, 208, 224, 0.40);
       border-radius: 8px;
-      padding: 8px 12px;
+      padding: 10px 14px;
       color: #eee;
       font-size: 12px;
       line-height: 1.4;
-      box-shadow: 0 4px 16px rgba(0,0,0,0.6);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.65);
       z-index: 10;
-      backdrop-filter: blur(4px);
+      backdrop-filter: blur(5px);
     }
     #hud h1 { font-size: 14px; color: #00e5ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-    #hud .stats { color: #94a3b8; font-family: monospace; font-size: 12px; margin-top: 4px; }
     
-    /* Viewport angle buttons */
-    .btn-row { margin-top: 8px; display: flex; gap: 6px; align-items: center; }
+    /* Health & Cooldown Bars */
+    .bar-container { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
+    .bar-label { width: 62px; font-size: 11px; font-weight: 600; color: #cbd5e1; }
+    .bar-bg { flex: 1; height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; border: 1px solid #334155; }
+    .bar-fill { height: 100%; transition: width 0.15s ease-out; }
+    .fill-hero { background: linear-gradient(90deg, #10b981, #34d399); }
+    .fill-dummy { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .fill-cooldown { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+
+    /* Combat Notification Banner */
+    #combat-banner {
+      margin-top: 6px; padding: 6px 10px; border-radius: 6px;
+      font-weight: bold; font-size: 11px; text-align: center;
+      background: rgba(30, 41, 59, 0.8); border: 1px solid #475569;
+      color: #94a3b8; transition: all 0.2s;
+    }
+    #combat-banner.frontal {
+      background: rgba(220, 38, 38, 0.25); border-color: #ef4444; color: #fca5a5;
+    }
+    #combat-banner.advantage {
+      background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7;
+    }
+
+    /* Buttons */
+    .btn-row { margin-top: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
     .btn {
-      padding: 5px 10px; border-radius: 4px; background: #1e293b; color: #cbd5e1;
+      padding: 4px 8px; border-radius: 4px; background: #1e293b; color: #cbd5e1;
       border: 1px solid #475569; font-size: 11px; cursor: pointer; font-weight: 500;
     }
     .btn.active {
       background: #0284c7; color: #fff; border-color: #38bdf8; font-weight: bold;
     }
 
-    /* Guide */
-    #guide {
-      position: absolute; bottom: 12px; right: 12px;
-      background: rgba(12, 16, 24, 0.85);
-      border-radius: 6px; padding: 6px 12px;
-      color: #94a3b8; font-size: 11px; pointer-events: none;
+    /* Floating Combat Text Container */
+    #floating-text-container {
+      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
+      pointer-events: none; overflow: hidden; z-index: 15;
     }
+    .floating-dmg {
+      position: absolute; font-weight: 900; font-family: monospace;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9);
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      animation: floatUp 0.8s ease-out forwards;
+    }
+    @keyframes floatUp {
+      0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
+      15% { opacity: 1; transform: translate(-50%, -15px) scale(1.3); }
+      40% { transform: translate(-50%, -28px) scale(1.0); }
+      100% { opacity: 0; transform: translate(-50%, -55px) scale(0.85); }
+    }
+
+    /* Guide overlay */
+    #guide-box {
+      position: absolute; bottom: 12px; right: 12px;
+      max-width: 320px; background: rgba(12, 16, 24, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
+      padding: 8px 12px; font-size: 11px; color: #94a3b8; line-height: 1.4;
+      pointer-events: none; z-index: 5;
+    }
+    #guide-box b { color: #f8fafc; }
 
     /* Virtual Joystick */
     #joystick-base {
@@ -74,424 +117,174 @@
     }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
-  <script src="js/GLTFLoader.js"></script>
 </head>
 <body>
   <div id="canvas-container"></div>
+  <div id="floating-text-container"></div>
 
+  <!-- Main HUD -->
   <div id="hud">
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-      <h1 style="font-size: 13px; color: #00e5ff; margin: 0; display: flex; align-items: center; gap: 6px;">
-        ⚔️ Overspire <span id="hud-mini-stats" style="font-size: 11px; color: #94a3b8; font-weight: normal;">(0.0, 0.0)</span>
+      <h1 style="font-size: 13px; color: #00e5ff; margin: 0;">
+        ⚔️ Overspire <span style="font-size: 11px; color: #f59e0b; font-weight: normal;">[Layer 2: Micro Bump]</span>
       </h1>
-      <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="padding: 2px 8px; font-size: 11px; background: #0284c7; color: #fff; cursor: pointer;">
-        🔼 메뉴 접기
+      <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="padding: 2px 8px; font-size: 11px; background: #0284c7; color: #fff;">
+        🔼 접기
       </button>
     </div>
 
     <div id="hud-body" style="margin-top: 6px;">
-      <div style="font-size: 11px; color: #94a3b8;">조작: <span style="color:#ffd2b2;">WASD / 방향키</span> 또는 <span style="color:#38bdf8;">가상 조이스틱</span></div>
-      <div class="stats" id="stats-text" style="font-size: 11px;">위치: (0.0, 0.0) | 속도: 0.0 m/s</div>
-
-      <!-- Style Switcher (Crossy Road 3D Voxel vs 2D Sprite) -->
-      <div style="margin-top: 6px; display: flex; gap: 6px; align-items: center;">
-        <span style="font-size: 11px; color: #94a3b8;">스타일:</span>
-        <button class="btn active" id="btn-style-voxel" onclick="setStyle('voxel')">📦 3D 복셀</button>
-        <button class="btn" id="btn-style-sprite" onclick="setStyle('sprite')">🖼️ 2D 도트</button>
-      </div>
-
-      <!-- Resolution Quality Switcher -->
-      <div style="margin-top: 6px; display: flex; gap: 6px; align-items: center;">
-        <span style="font-size: 11px; color: #94a3b8;">화질:</span>
-        <button class="btn active" id="btn-quality-hd" onclick="setQuality('hd')">💎 HD 선명 모드</button>
-        <button class="btn" id="btn-quality-retro" onclick="setQuality('retro')">👾 레트로 픽셀</button>
-      </div>
-
-      <!-- Real-time Equipment & Armor Switcher -->
-      <div style="margin-top: 6px; padding: 6px 8px; background: rgba(0,0,0,0.35); border-radius: 6px; border: 1px solid rgba(255,255,255,0.08);">
-        <div style="font-size: 11px; color: #38bdf8; font-weight: bold; margin-bottom: 4px;">🛡️ 장비 외형 교체 (실시간 3D 스왑):</div>
-        <div style="display: flex; gap: 4px; flex-wrap: wrap;">
-          <button class="btn active" id="btn-equip-default" onclick="setEquipment('default')">👔 기본 모험가</button>
-          <button class="btn" id="btn-equip-iron" onclick="setEquipment('iron')">🛡️ 철갑옷 기사</button>
-          <button class="btn active" id="btn-toggle-weapon" onclick="toggleWeapons()">⚔️ 검/방패</button>
+      <!-- Hero Health Bar -->
+      <div class="bar-container">
+        <span class="bar-label">용사 HP</span>
+        <div class="bar-bg">
+          <div class="bar-fill fill-hero" id="hero-hp-fill" style="width: 100%;"></div>
         </div>
+        <span id="hero-hp-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
       </div>
 
-      <!-- Real-time ViewSize Zoom Controller -->
-      <div class="viewsize-control" style="margin-top: 8px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.12);">
-        <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px; margin-bottom: 4px;">
-          <span style="font-weight: bold; color: #38bdf8; font-size: 11px;">🔍 뷰사이즈 조절:</span>
-          <div style="display: flex; align-items: center; gap: 4px;">
-            <input type="number" id="view-size-input" value="14.4" min="4" max="50" step="0.5" 
-                   onkeydown="event.stopPropagation()"
-                   oninput="updateViewSize(this.value)"
-                   style="width: 55px; background: #1e293b; color: #38bdf8; border: 1px solid #475569; border-radius: 4px; padding: 1px 4px; font-weight: bold; text-align: center; font-size: 11px;">
-            <span style="color: #94a3b8; font-size: 11px;">m</span>
-          </div>
+      <!-- Dummy Target Health Bar -->
+      <div class="bar-container">
+        <span class="bar-label">더미 HP</span>
+        <div class="bar-bg">
+          <div class="bar-fill fill-dummy" id="dummy-hp-fill" style="width: 100%;"></div>
         </div>
-        <input type="range" id="view-size-slider" value="14.4" min="6" max="36" step="0.2" 
-               oninput="updateViewSize(this.value)"
-               style="width: 100%; accent-color: #0284c7; cursor: pointer; margin-bottom: 4px;">
-        <div class="btn-row" style="display: flex; gap: 4px; flex-wrap: wrap;">
-          <button class="btn" id="btn-zoom-close" onclick="updateViewSize(4.8)">🔍 4.8m (초근접)</button>
-          <button class="btn" id="btn-7" onclick="updateViewSize(7.2)">7.2m</button>
-          <button class="btn" id="btn-12" onclick="updateViewSize(12.0)">12.0m</button>
-          <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4m (기본)</button>
-          <button class="btn" id="btn-19" onclick="updateViewSize(19.2)">19.2m</button>
-          <button class="btn" id="btn-24" onclick="updateViewSize(24.0)">24.0m</button>
+        <span id="dummy-hp-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
+      </div>
+
+      <!-- Attack Cooldown Gauge -->
+      <div class="bar-container">
+        <span class="bar-label">쿨다운</span>
+        <div class="bar-bg">
+          <div class="bar-fill fill-cooldown" id="cooldown-fill" style="width: 0%;"></div>
+        </div>
+        <span id="cooldown-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">READY</span>
+      </div>
+
+      <!-- Real-time Combat Notification Banner -->
+      <div id="combat-banner">
+        더미 인형(나무 기둥)을 향해 들이받아 보세요!
+      </div>
+
+      <!-- View Size & Zoom Controller -->
+      <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+          <span style="font-size: 11px; color: #38bdf8; font-weight: bold;">🔍 직교 뷰사이즈:</span>
+          <span id="view-size-text" style="font-size: 11px; color: #94a3b8; font-family: monospace;">14.4m (기본)</span>
+        </div>
+        <div class="btn-row">
+          <button class="btn" onclick="updateViewSize(7.2)">7.2m</button>
+          <button class="btn" onclick="updateViewSize(10.8)">10.8m</button>
+          <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4m</button>
+          <button class="btn" onclick="updateViewSize(18.0)">18.0m</button>
+          <button class="btn" onclick="resetDummyPosition()" style="background: #334155; margin-left: auto;">🔄 더미 리셋</button>
         </div>
       </div>
     </div>
   </div>
 
-  <div id="guide">8-Directional Sprites (Top-Down 58° Fixed, ViewSize 14.4m)</div>
+  <!-- Guide Box -->
+  <div id="guide-box">
+    <b>💡 범프 전투 원칙 (Layer 2)</b><br>
+    • <b>정면 충돌 (빨간 뿔 90° 이내)</b>: 상호 피해 발생! 용사도 피격됨.<br>
+    • <b>측/후면 공격 (270° 영역)</b>: 일방 타격! 용사 피해 0, 적에게 큰 넉백.<br>
+    • <b>0.35s 쿨다운 & 분리 임펄스</b>: 무적 시간 없이도 연타 버그 방지!
+  </div>
 
+  <!-- Touch Joystick -->
   <div id="joystick-base"></div>
   <div id="joystick-knob"></div>
 
   <script>
-    // --- 1. Three.js Orthographic Scene ---
+    // ========================================================
+    // --- 1. Scene, Camera, & Compatibility Renderer Setup ---
+    // ========================================================
     const container = document.getElementById('canvas-container');
-    let viewSize = 14.4; // Default viewSize (14.4m)
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0f1219);
+    scene.background = new THREE.Color(0x0e1118);
 
-    let width = window.innerWidth;
-    let height = window.innerHeight;
-    let aspect = width / height;
-
+    const aspect = window.innerWidth / window.innerHeight;
+    let orthoSize = 14.4;
     const camera = new THREE.OrthographicCamera(
-      -viewSize * aspect / 2, viewSize * aspect / 2,
-      viewSize / 2, -viewSize / 2,
-      0.1, 100
+      -orthoSize * aspect / 2, orthoSize * aspect / 2,
+      orthoSize / 2, -orthoSize / 2,
+      0.1, 1000
     );
 
-    // Fixed Top-Down Orthogonal Viewport (Pitch: 56.6°, Height: 8.5, Distance: 5.2)
-    const camHeight = 8.5;
-    const camDistance = 5.2;
-    const PITCH_ANGLE = Math.atan2(camHeight - 0.6, camDistance);
-    camera.position.set(0, camHeight, camDistance);
-    camera.rotation.set(-PITCH_ANGLE, 0, 0);
+    // Standard 2.5D Orthogonal Tilt: 56.6 degrees
+    const PITCH = 56.6 * (Math.PI / 180);
+    const CAM_DIST = 18.0;
+    const CAM_Y = Math.sin(PITCH) * CAM_DIST;
+    const CAM_Z = Math.cos(PITCH) * CAM_DIST;
+    camera.position.set(0, CAM_Y, CAM_Z);
+    camera.rotation.set(-PITCH, 0, 0);
 
     const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2.0));
     renderer.shadowMap.enabled = true;
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
-    renderer.outputColorSpace = THREE.SRGBColorSpace;
-    renderer.toneMapping = THREE.ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.05;
     container.appendChild(renderer.domElement);
 
-    let renderQuality = 'hd'; // 'hd' (Crystal Clear Native) or 'retro' (Downscaled Pixelated)
-
-    function applyResolution() {
-      width = window.innerWidth;
-      height = window.innerHeight;
-      aspect = width / height;
-
-      camera.left = -viewSize * aspect / 2;
-      camera.right = viewSize * aspect / 2;
-      camera.top = viewSize / 2;
-      camera.bottom = -viewSize / 2;
-      camera.updateProjectionMatrix();
-
-      const canvas = renderer.domElement;
-      if (renderQuality === 'hd') {
-        canvas.classList.remove('pixelated');
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2.5));
-        renderer.setSize(width, height, true);
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-      } else {
-        canvas.classList.add('pixelated');
-        const scale = Math.max(1, Math.floor(height / 300));
-        renderer.setPixelRatio(1.0);
-        renderer.setSize(Math.round(width / scale), Math.round(height / scale), false);
-        canvas.style.width = width + 'px';
-        canvas.style.height = height + 'px';
-      }
-    }
-    applyResolution();
-
-    function setQuality(q) {
-      renderQuality = q;
-      document.getElementById('btn-quality-hd').classList.toggle('active', q === 'hd');
-      document.getElementById('btn-quality-retro').classList.toggle('active', q === 'retro');
-      applyResolution();
-    }
-
-    function updateViewSize(newVal) {
-      const val = Math.max(4.0, Math.min(60.0, parseFloat(newVal) || 14.4));
-      viewSize = val;
-      const inp = document.getElementById('view-size-input');
-      const sld = document.getElementById('view-size-slider');
-      if (inp && document.activeElement !== inp) inp.value = val.toFixed(1);
-      if (sld) sld.value = val;
-      
-      document.querySelectorAll('.btn-row .btn').forEach(b => {
-        b.classList.remove('active');
-        const match = b.textContent.match(/[\d\.]+/);
-        const num = match ? parseFloat(match[0]) : NaN;
-        if (!isNaN(num) && Math.abs(num - val) < 0.2) {
-          b.classList.add('active');
-        }
-      });
-      applyResolution();
-    }
-
-    let hudCollapsed = window.innerWidth < 768; // Start collapsed on mobile screens so character is never covered
-    function updateHudDisplay() {
-      const body = document.getElementById('hud-body');
-      const btn = document.getElementById('btn-toggle-hud');
-      if (!body || !btn) return;
-      if (hudCollapsed) {
-        body.style.display = 'none';
-        btn.textContent = '🔽 메뉴 열기';
-        btn.style.background = '#1e293b';
-      } else {
-        body.style.display = 'block';
-        btn.textContent = '🔼 메뉴 접기';
-        btn.style.background = '#0284c7';
-      }
-    }
-    function toggleHud() {
-      hudCollapsed = !hudCollapsed;
-      updateHudDisplay();
-    }
-    updateHudDisplay();
-
-    let currentStyle = 'voxel';
-    function setStyle(mode) {
-      currentStyle = mode;
-      document.getElementById('btn-style-voxel').classList.toggle('active', mode === 'voxel');
-      document.getElementById('btn-style-sprite').classList.toggle('active', mode === 'sprite');
-      if (mode === 'voxel') {
-        if (voxelHero) voxelHero.visible = true;
-        if (spriteMesh) spriteMesh.visible = false;
-      } else {
-        if (voxelHero) voxelHero.visible = false;
-        if (spriteMesh) spriteMesh.visible = true;
-      }
-    }
-
-    let currentEquipment = 'default';
-    let showWeapons = true;
-
-    function setEquipment(mode) {
-      currentEquipment = mode;
-      document.getElementById('btn-equip-default').classList.toggle('active', mode === 'default');
-      document.getElementById('btn-equip-iron').classList.toggle('active', mode === 'iron');
-
-      if (!armorParts.torso) return;
-
-      if (mode === 'default') {
-        // Default Beige Cotton Adventurer Outfit
-        armorParts.torso.material.color.setHex(0xd0bd95);
-        armorParts.collarL.material.color.setHex(0xe4d6b6);
-        armorParts.collarR.material.color.setHex(0xe4d6b6);
-        armorParts.belt.material.color.setHex(0x5b4535);
-        armorParts.buckle.material.color.setHex(0xf5c542);
-        armorParts.leftSleeve.material.color.setHex(0xd0bd95);
-        armorParts.rightSleeve.material.color.setHex(0xd0bd95);
-        armorParts.leftPants.material.color.setHex(0x1a1618);
-        armorParts.rightPants.material.color.setHex(0x1a1618);
-        armorParts.leftBoot.material.color.setHex(0x814126);
-        armorParts.rightBoot.material.color.setHex(0x814126);
-        armorParts.leftSole.material.color.setHex(0x2f1613);
-        armorParts.rightSole.material.color.setHex(0x2f1613);
-
-        armorParts.ironCrossV.visible = false;
-        armorParts.ironCrossH.visible = false;
-        armorParts.leftPauldron.visible = false;
-        armorParts.rightPauldron.visible = false;
-        armorParts.leftKnee.visible = false;
-        armorParts.rightKnee.visible = false;
-      } else if (mode === 'iron') {
-        // Polished Steel Knight Armor with Gold Lion Cross & Chainmail
-        armorParts.torso.material.color.setHex(0xa6b8cb);     // Steel breastplate
-        armorParts.collarL.material.color.setHex(0xd8e6f3);   // Steel gorget plate
-        armorParts.collarR.material.color.setHex(0xd8e6f3);
-        armorParts.belt.material.color.setHex(0x424e5b);      // Heavy iron belt
-        armorParts.buckle.material.color.setHex(0xf5c542);    // Gold crest buckle
-        armorParts.leftSleeve.material.color.setHex(0x7e90a2);// Steel arm armor
-        armorParts.rightSleeve.material.color.setHex(0x7e90a2);
-        armorParts.leftPants.material.color.setHex(0x505c69); // Chainmail cuisses
-        armorParts.rightPants.material.color.setHex(0x505c69);
-        armorParts.leftBoot.material.color.setHex(0x7c8e9f);  // Steel Sabatons
-        armorParts.rightBoot.material.color.setHex(0x7c8e9f);
-        armorParts.leftSole.material.color.setHex(0x283039);  // Iron sole
-
-        armorParts.ironCrossV.visible = true;
-        armorParts.ironCrossH.visible = true;
-        armorParts.leftPauldron.visible = true;
-        armorParts.rightPauldron.visible = true;
-        armorParts.leftKnee.visible = true;
-        armorParts.rightKnee.visible = true;
-        showWeapons = true;
-        updateWeaponVisibility();
-      }
-    }
-
-    function toggleWeapons() {
-      showWeapons = !showWeapons;
-      updateWeaponVisibility();
-    }
-
-    function updateWeaponVisibility() {
-      const btn = document.getElementById('btn-toggle-weapon');
-      if (btn) btn.classList.toggle('active', showWeapons);
-      if (armorParts.swordGroup) armorParts.swordGroup.visible = showWeapons;
-      if (armorParts.shieldGroup) armorParts.shieldGroup.visible = showWeapons;
-    }
-
-    function lerpAngle(from, to, weight) {
-      let diff = to - from;
-      while (diff < -Math.PI) diff += Math.PI * 2;
-      while (diff > Math.PI) diff -= Math.PI * 2;
-      return from + diff * Math.min(1.0, weight);
-    }
-
-    // --- 2. Lighting (Crisp Top-Down Diorama Sunlight & Soft Ambient) ---
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.85);
+    // Lighting
+    const ambientLight = new THREE.AmbientLight(0xcfd8dc, 1.25);
     scene.add(ambientLight);
 
-    const hemiLight = new THREE.HemisphereLight(0xe8f0ff, 0x181e28, 0.65);
-    scene.add(hemiLight);
+    const sun = new THREE.DirectionalLight(0xfff5e6, 1.3);
+    sun.position.set(6, 14, 8);
+    sun.castShadow = true;
+    sun.shadow.mapSize.width = 1024;
+    sun.shadow.mapSize.height = 1024;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 30;
+    sun.shadow.camera.left = -10;
+    sun.shadow.camera.right = 10;
+    sun.shadow.camera.top = 10;
+    sun.shadow.camera.bottom = -10;
+    scene.add(sun);
 
-    const dirLight = new THREE.DirectionalLight(0xfffaed, 1.35);
-    dirLight.position.set(6, 14, 8);
-    dirLight.castShadow = true;
-    dirLight.shadow.mapSize.width = 1024;
-    dirLight.shadow.mapSize.height = 1024;
-    dirLight.shadow.camera.near = 1.0;
-    dirLight.shadow.camera.far = 30.0;
-    dirLight.shadow.bias = -0.0004;
-    scene.add(dirLight);
+    // Arena Floor
+    const floorGeo = new THREE.PlaneGeometry(24, 24);
+    const floorMat = new THREE.MeshLambertMaterial({ color: 0x1f232d });
+    const floor = new THREE.Mesh(floorGeo, floorMat);
+    floor.rotation.x = -Math.PI / 2;
+    floor.receiveShadow = true;
+    scene.add(floor);
 
-    // --- 3. Dungeon Arena ---
-    const floorGroup = new THREE.Group();
-    scene.add(floorGroup);
+    // Arena Grid Lines (1m sub-grid)
+    const gridHelper = new THREE.GridHelper(24, 24, 0x00d0e0, 0x2e3542);
+    gridHelper.position.y = 0.005;
+    scene.add(gridHelper);
 
-    const tileGeo = new THREE.PlaneGeometry(1.0, 1.0);
-    const tileMatA = new THREE.MeshLambertMaterial({ color: 0x242833 });
-    const tileMatB = new THREE.MeshLambertMaterial({ color: 0x1d212b });
-
-    for (let x = -8; x <= 8; x++) {
-      for (let z = -8; z <= 8; z++) {
-        const mat = (Math.abs(x + z) % 2 === 0) ? tileMatA : tileMatB;
-        const tile = new THREE.Mesh(tileGeo, mat);
-        tile.position.set(x, 0, z);
-        tile.rotation.x = -Math.PI / 2;
-        tile.receiveShadow = true;
-        floorGroup.add(tile);
-      }
-    }
-
-    const wallMat = new THREE.MeshLambertMaterial({ color: 0x14171f });
-    const createWall = (w, h, d, x, z) => {
-      const geo = new THREE.BoxGeometry(w, h, d);
-      const mesh = new THREE.Mesh(geo, wallMat);
-      mesh.position.set(x, h/2, z);
+    // Arena Walls
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x151922 });
+    const createWall = (w, h, d, x, y, z) => {
+      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
+      mesh.position.set(x, y, z);
       mesh.castShadow = true;
       mesh.receiveShadow = true;
       scene.add(mesh);
     };
-    createWall(18, 1.8, 0.8, 0, -9);
-    createWall(18, 1.8, 0.8, 0, 9);
-    createWall(0.8, 1.8, 18, -9, 0);
-    createWall(0.8, 1.8, 18, 9, 0);
+    createWall(24, 1.6, 0.8, 0, 0.8, -12.4); // North
+    createWall(24, 1.6, 0.8, 0, 0.8, 12.4);  // South
+    createWall(0.8, 1.6, 24, -12.4, 0.8, 0); // West
+    createWall(0.8, 1.6, 24, 12.4, 0.8, 0);  // East
 
-    const pillars = [
-      { x: -3.5, z: -3.5, r: 0.55 },
-      { x: 3.5, z: -3.5, r: 0.55 },
-      { x: -3.5, z: 3.5, r: 0.55 },
-      { x: 3.5, z: 3.5, r: 0.55 }
-    ];
-    const pillarMat = new THREE.MeshLambertMaterial({ color: 0x363c48 });
-    pillars.forEach(p => {
-      const geo = new THREE.CylinderGeometry(0.5, 0.55, 2.0, 12);
-      const m = new THREE.Mesh(geo, pillarMat);
-      m.position.set(p.x, 1.0, p.z);
-      m.castShadow = true;
-      m.receiveShadow = true;
-      scene.add(m);
+    // Four Decorative Arena Pillars
+    const pillarMat = new THREE.MeshLambertMaterial({ color: 0x2a303c });
+    const pillarGeo = new THREE.CylinderGeometry(0.55, 0.60, 2.2, 16);
+    [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([px, pz]) => {
+      const pil = new THREE.Mesh(pillarGeo, pillarMat);
+      pil.position.set(px, 1.1, pz);
+      pil.castShadow = true;
+      pil.receiveShadow = true;
+      scene.add(pil);
     });
 
-    // --- 4. Hero Representation (3D Crossy Road Voxel Model + 2D Sprite Backup) ---
-    const heroGroup = new THREE.Group();
-    scene.add(heroGroup);
-
-    // Oval Ground Shadow
-    const shadowGeo = new THREE.CylinderGeometry(0.38, 0.38, 0.01, 16);
-    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x05070a, transparent: true, opacity: 0.55 });
-    const shadowMesh = new THREE.Mesh(shadowGeo, shadowMat);
-    shadowMesh.position.y = 0.01;
-    heroGroup.add(shadowMesh);
-
-    // --- Dust Particle Pool (Juicy Crossy Road Landing Poofs) ---
-    const dustPool = [];
-    const DUST_COUNT = 18;
-    const dustGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
-    const dustMat = new THREE.MeshBasicMaterial({ color: 0xb5aba0, transparent: true, opacity: 0.85 });
-    for (let i = 0; i < DUST_COUNT; i++) {
-      const p = new THREE.Mesh(dustGeo, dustMat.clone());
-      p.visible = false;
-      p.userData = { life: 0, maxLife: 0.28, vx: 0, vy: 0, vz: 0 };
-      scene.add(p);
-      dustPool.push(p);
-    }
-
-    function spawnLandingDust(x, z) {
-      let spawned = 0;
-      for (let i = 0; i < dustPool.length && spawned < 5; i++) {
-        const p = dustPool[i];
-        if (!p.visible) {
-          p.visible = true;
-          p.position.set(x + (Math.random() - 0.5) * 0.28, 0.04, z + (Math.random() - 0.5) * 0.28);
-          const angle = Math.random() * Math.PI * 2;
-          const spd = 0.7 + Math.random() * 1.1;
-          p.userData.vx = Math.cos(angle) * spd;
-          p.userData.vy = 0.8 + Math.random() * 0.8;
-          p.userData.vz = Math.sin(angle) * spd;
-          p.userData.life = 0.26;
-          p.userData.maxLife = 0.26;
-          p.scale.setScalar(1.0);
-          spawned++;
-        }
-      }
-    }
-
-    function updateDust(dt) {
-      for (let i = 0; i < dustPool.length; i++) {
-        const p = dustPool[i];
-        if (p.visible) {
-          p.userData.life -= dt;
-          if (p.userData.life <= 0) {
-            p.visible = false;
-          } else {
-            const progress = 1.0 - (p.userData.life / p.userData.maxLife);
-            p.position.x += p.userData.vx * dt;
-            p.position.y += p.userData.vy * dt;
-            p.position.z += p.userData.vz * dt;
-            p.userData.vy -= 4.2 * dt; // gravity
-            const scale = Math.max(0.01, 1.0 - progress);
-            p.scale.set(scale, scale, scale);
-            p.material.opacity = 0.85 * (1.0 - progress);
-          }
-        }
-      }
-    }
-
     // ========================================================
-    // --- 3D Procedural Voxel Hero Model (Crossy Road Aesthetic) ---
+    // --- 2. Voxel Helper & Hero Model ---
     // ========================================================
-    const voxelHero = new THREE.Group();
-    heroGroup.add(voxelHero);
-
-    // Root Body Pivot (handles hop squash/stretch, hop arc, and forward momentum lean)
-    const bodyPivot = new THREE.Group();
-    voxelHero.add(bodyPivot);
-
-    const createVoxel = (w, h, d, color, x, y, z, parent = bodyPivot) => {
+    const createVoxel = (w, h, d, color, x, y, z, parent) => {
       const geo = new THREE.BoxGeometry(w, h, d);
       const mat = new THREE.MeshLambertMaterial({ color: color });
       const mesh = new THREE.Mesh(geo, mat);
@@ -502,279 +295,451 @@
       return mesh;
     };
 
-    // --- Equipment & Armor Parts ---
-    const armorParts = {
-      torso: null,
-      collarL: null,
-      collarR: null,
-      belt: null,
-      buckle: null,
-      leftSleeve: null,
-      rightSleeve: null,
-      leftPants: null,
-      rightPants: null,
-      leftBoot: null,
-      rightBoot: null,
-      leftSole: null,
-      rightSole: null,
-      ironCrossV: null,
-      ironCrossH: null,
-      leftPauldron: null,
-      rightPauldron: null,
-      leftKnee: null,
-      rightKnee: null,
-      swordGroup: null,
-      shieldGroup: null,
+    const heroGroup = new THREE.Group();
+    scene.add(heroGroup);
+
+    // Hero Shadow
+    const shadowGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.02, 16);
+    const shadowMat = new THREE.MeshBasicMaterial({ color: 0x05070a, transparent: true, opacity: 0.55 });
+    const heroShadow = new THREE.Mesh(shadowGeo, shadowMat);
+    heroShadow.position.y = 0.01;
+    heroGroup.add(heroShadow);
+
+    const heroBodyPivot = new THREE.Group();
+    heroGroup.add(heroBodyPivot);
+
+    // Hero Mesh Parts
+    const heroMeshes = [];
+    const addHeroVoxel = (w, h, d, color, x, y, z, parent = heroBodyPivot) => {
+      const mesh = createVoxel(w, h, d, color, x, y, z, parent);
+      heroMeshes.push({ mesh, originalColor: color });
+      return mesh;
     };
 
-    // --- A. Torso & Adventurer Shirt ---
-    // Rolled-sleeve sand/beige shirt (w: 0.44m, h: 0.38m, d: 0.28m)
-    armorParts.torso = createVoxel(0.44, 0.38, 0.28, 0xd0bd95, 0, 0.52, 0);
-    // V-Neck collar fold
-    armorParts.collarL = createVoxel(0.13, 0.12, 0.04, 0xe4d6b6, -0.09, 0.64, 0.14);
-    armorParts.collarR = createVoxel(0.13, 0.12, 0.04, 0xe4d6b6, 0.09, 0.64, 0.14);
-    // Chest skin V-notch
-    createVoxel(0.08, 0.09, 0.02, 0xfac19e, 0, 0.63, 0.14);
+    // Body
+    addHeroVoxel(0.44, 0.38, 0.28, 0xd0bd95, 0, 0.52, 0); // Beige shirt
+    addHeroVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0); // Belt
+    addHeroVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16); // Buckle
 
-    // Leather belt & Brass Buckle
-    armorParts.belt = createVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0);
-    armorParts.buckle = createVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16);
-
-    // Iron Knight Breastplate Overlays (Golden Lion Cross Emblem)
-    armorParts.ironCrossV = createVoxel(0.06, 0.22, 0.03, 0xf5c542, 0, 0.54, 0.15);
-    armorParts.ironCrossH = createVoxel(0.20, 0.06, 0.03, 0xf5c542, 0, 0.58, 0.15);
-    armorParts.ironCrossV.visible = false;
-    armorParts.ironCrossH.visible = false;
-
-    // --- B. Big Chibi Head & Messy Silver Hair ---
+    // Chibi Head & Silver Hair
     const headGroup = new THREE.Group();
-    bodyPivot.add(headGroup);
+    heroBodyPivot.add(headGroup);
+    addHeroVoxel(0.48, 0.44, 0.44, 0xfac19e, 0, 0.95, 0, headGroup); // Face
+    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, -0.13, 0.94, 0.23, headGroup); // Left Eye
+    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, 0.13, 0.94, 0.23, headGroup);  // Right Eye
+    addHeroVoxel(0.54, 0.20, 0.50, 0xc4c0c4, 0, 1.18, 0, headGroup); // Hair crown
+    addHeroVoxel(0.18, 0.14, 0.10, 0xc4c0c4, 0.02, 1.10, 0.24, headGroup); // Bangs
 
-    // Cute peach chibi face cube (w: 0.48, h: 0.44, d: 0.44)
-    createVoxel(0.48, 0.44, 0.44, 0xfac19e, 0, 0.95, 0, headGroup);
-
-    // Big Cyan / Turquoise Eyes with glints
-    createVoxel(0.09, 0.11, 0.03, 0x00d8e8, -0.13, 0.94, 0.23, headGroup);
-    createVoxel(0.04, 0.04, 0.04, 0xffffff, -0.12, 0.97, 0.23, headGroup);
-    createVoxel(0.09, 0.11, 0.03, 0x00d8e8, 0.13, 0.94, 0.23, headGroup);
-    createVoxel(0.04, 0.04, 0.04, 0xffffff, 0.14, 0.97, 0.23, headGroup);
-
-    // Messy Silver/Ash-Gray Hair Voxels
-    // Crown main volume
-    createVoxel(0.54, 0.20, 0.50, 0xc4c0c4, 0, 1.18, 0, headGroup);
-    // Top highlight tuft
-    createVoxel(0.26, 0.12, 0.26, 0xdcd8dc, 0.06, 1.28, -0.04, headGroup);
-    // Front bangs clumps
-    createVoxel(0.18, 0.14, 0.10, 0xc4c0c4, 0.02, 1.10, 0.24, headGroup);
-    createVoxel(0.14, 0.18, 0.10, 0x94918c, -0.17, 1.06, 0.24, headGroup);
-    createVoxel(0.14, 0.16, 0.10, 0xc4c0c4, 0.19, 1.07, 0.24, headGroup);
-    // Side hair clumps
-    createVoxel(0.08, 0.36, 0.46, 0xaba7ab, -0.26, 0.98, 0.02, headGroup);
-    createVoxel(0.08, 0.36, 0.46, 0xaba7ab, 0.26, 0.98, 0.02, headGroup);
-    // Back hair flowing down to collar
-    createVoxel(0.50, 0.36, 0.10, 0x767171, 0, 0.98, -0.24, headGroup);
-
-    // --- C. Arms (Rolled-up sleeves + hands + Weapons) ---
-    // --- Left Arm & Buckler Shield (Front Defense Guard Stance) ---
+    // Arms & Weapons
     const leftArmPivot = new THREE.Group();
     leftArmPivot.position.set(-0.25, 0.60, 0.04);
-    // Initial combat guard stance: raised and bent forward across chest
     leftArmPivot.rotation.set(-0.55, 0.35, 0.15);
-    bodyPivot.add(leftArmPivot);
+    heroBodyPivot.add(leftArmPivot);
+    addHeroVoxel(0.10, 0.16, 0.12, 0xd0bd95, 0, -0.06, 0, leftArmPivot);
+    addHeroVoxel(0.09, 0.14, 0.10, 0xfac19e, 0, -0.19, 0.02, leftArmPivot);
 
-    armorParts.leftSleeve = createVoxel(0.10, 0.16, 0.12, 0xd0bd95, 0, -0.06, 0, leftArmPivot);
-    createVoxel(0.09, 0.14, 0.10, 0xfac19e, 0, -0.19, 0.02, leftArmPivot);
-    // Left Pauldron (Iron Armor)
-    armorParts.leftPauldron = createVoxel(0.14, 0.09, 0.16, 0xb8cbde, 0, 0.02, 0, leftArmPivot);
-    armorParts.leftPauldron.visible = false;
-
-    // Round Buckler Shield held in FRONT of chest facing camera (+Z)
+    // Buckler Shield (Front Guard)
     const shieldGroup = new THREE.Group();
     shieldGroup.position.set(0.02, -0.16, 0.10);
     shieldGroup.rotation.set(0.40, -0.22, -0.12);
     leftArmPivot.add(shieldGroup);
-    armorParts.shieldGroup = shieldGroup;
+    addHeroVoxel(0.26, 0.28, 0.04, 0x5a3d28, 0, 0, 0, shieldGroup);
+    addHeroVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, 0.13, 0.01, shieldGroup);
+    addHeroVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, -0.13, 0.01, shieldGroup);
+    addHeroVoxel(0.12, 0.12, 0.05, 0x00d8e8, 0, 0, 0.03, shieldGroup); // Shield boss
 
-    // Shield front face (w: 0.28m, h: 0.30m, facing forward +Z!)
-    createVoxel(0.26, 0.28, 0.04, 0x5a3d28, 0, 0, 0, shieldGroup); // Rich wood planks
-    // Iron rim border (clearly framing the perimeter)
-    createVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, 0.13, 0.01, shieldGroup);  // Top rim
-    createVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, -0.13, 0.01, shieldGroup); // Bottom rim
-    createVoxel(0.04, 0.28, 0.05, 0x8898a8, -0.13, 0, 0.01, shieldGroup); // Left rim
-    createVoxel(0.04, 0.28, 0.05, 0x8898a8, 0.13, 0, 0.01, shieldGroup);  // Right rim
-    // Glowing Cyan Boss & Gold Center Rivet (protruding proudly in front)
-    createVoxel(0.12, 0.12, 0.05, 0x00d8e8, 0, 0, 0.03, shieldGroup);
-    createVoxel(0.04, 0.04, 0.06, 0xf5c542, 0, 0, 0.04, shieldGroup);
-
-    // --- Right Arm & Short Sword (Hand Thrust Forward, Blade Angled Up & Out) ---
+    // Right Arm & Sword
     const rightArmPivot = new THREE.Group();
     rightArmPivot.position.set(0.25, 0.60, 0.04);
-    // Initial combat attack stance: reaching forward towards +Z
     rightArmPivot.rotation.set(-0.70, -0.20, -0.10);
-    bodyPivot.add(rightArmPivot);
+    heroBodyPivot.add(rightArmPivot);
+    addHeroVoxel(0.10, 0.16, 0.12, 0xd0bd95, 0, -0.06, 0, rightArmPivot);
+    addHeroVoxel(0.09, 0.14, 0.10, 0xfac19e, 0, -0.19, 0.02, rightArmPivot);
 
-    armorParts.rightSleeve = createVoxel(0.10, 0.16, 0.12, 0xd0bd95, 0, -0.06, 0, rightArmPivot);
-    createVoxel(0.09, 0.14, 0.10, 0xfac19e, 0, -0.19, 0.02, rightArmPivot);
-    // Right Pauldron (Iron Armor)
-    armorParts.rightPauldron = createVoxel(0.14, 0.09, 0.16, 0xb8cbde, 0, 0.02, 0, rightArmPivot);
-    armorParts.rightPauldron.visible = false;
-
-    // Voxel Short Sword in Hand (extended forward and tilted up so blade is completely visible)
     const swordGroup = new THREE.Group();
     swordGroup.position.set(0, -0.20, 0.08);
-    // Angled forward-upward along line of sight for maximum 3D clarity!
     swordGroup.rotation.set(0.95, 0.20, -0.25);
     rightArmPivot.add(swordGroup);
-    armorParts.swordGroup = swordGroup;
+    addHeroVoxel(0.04, 0.12, 0.04, 0x4e3324, 0, -0.04, 0, swordGroup); // Grip
+    addHeroVoxel(0.18, 0.04, 0.06, 0xf5c542, 0, 0.03, 0, swordGroup);  // Guard
+    addHeroVoxel(0.06, 0.44, 0.02, 0xd0e0f0, 0, 0.26, 0, swordGroup);  // Blade
 
-    createVoxel(0.04, 0.12, 0.04, 0x4e3324, 0, -0.04, 0, swordGroup);    // Leather grip
-    createVoxel(0.18, 0.04, 0.06, 0xf5c542, 0, 0.03, 0, swordGroup);     // Wide Brass Crossguard
-    createVoxel(0.06, 0.44, 0.02, 0xd0e0f0, 0, 0.26, 0, swordGroup);     // Steel Blade (44cm)
-    createVoxel(0.07, 0.42, 0.01, 0xffffff, 0, 0.26, 0.01, swordGroup);  // Sharp Edge Shine
-    createVoxel(0.04, 0.08, 0.02, 0xffffff, 0, 0.50, 0, swordGroup);     // Pointed Tip
+    // Legs
+    const leftLeg = addHeroVoxel(0.15, 0.28, 0.16, 0x814126, -0.12, 0.14, 0);
+    const rightLeg = addHeroVoxel(0.15, 0.28, 0.16, 0x814126, 0.12, 0.14, 0);
 
-    // --- D. Legs & Boots (Dark trousers + brown leather boots) ---
-    const leftLegPivot = new THREE.Group();
-    leftLegPivot.position.set(-0.12, 0.32, 0);
-    bodyPivot.add(leftLegPivot);
-    armorParts.leftPants = createVoxel(0.15, 0.16, 0.15, 0x1a1618, 0, -0.07, 0, leftLegPivot);
-    armorParts.leftBoot = createVoxel(0.16, 0.15, 0.22, 0x814126, 0, -0.21, 0.03, leftLegPivot);
-    armorParts.leftSole = createVoxel(0.16, 0.03, 0.23, 0x2f1613, 0, -0.29, 0.03, leftLegPivot);
-    // Iron Armor Knee Guard
-    armorParts.leftKnee = createVoxel(0.17, 0.07, 0.06, 0xb0c2d4, 0, -0.12, 0.10, leftLegPivot);
-    armorParts.leftKnee.visible = false;
+    // ========================================================
+    // --- 3. Training Dummy Target (Layer 2 Combat Goal) ---
+    // ========================================================
+    const dummyGroup = new THREE.Group();
+    dummyGroup.position.set(0, 0, -3.0);
+    scene.add(dummyGroup);
 
-    const rightLegPivot = new THREE.Group();
-    rightLegPivot.position.set(0.12, 0.32, 0);
-    bodyPivot.add(rightLegPivot);
-    armorParts.rightPants = createVoxel(0.15, 0.16, 0.15, 0x1a1618, 0, -0.07, 0, rightLegPivot);
-    armorParts.rightBoot = createVoxel(0.16, 0.15, 0.22, 0x814126, 0, -0.21, 0.03, rightLegPivot);
-    armorParts.rightSole = createVoxel(0.16, 0.03, 0.23, 0x2f1613, 0, -0.29, 0.03, rightLegPivot);
-    // Iron Armor Knee Guard
-    armorParts.rightKnee = createVoxel(0.17, 0.07, 0.06, 0xb0c2d4, 0, -0.12, 0.10, rightLegPivot);
-    armorParts.rightKnee.visible = false;
+    // Dummy Shadow
+    const dummyShadow = new THREE.Mesh(shadowGeo, shadowMat);
+    dummyShadow.position.y = 0.01;
+    dummyGroup.add(dummyShadow);
 
-    // --- 2D Sprite Backup (Hidden in Voxel Mode) ---
-    const spriteMat = new THREE.MeshBasicMaterial({
-      color: 0xffffff,
-      transparent: true,
-      alphaTest: 0.05,
-      side: THREE.DoubleSide
-    });
-    const spriteGeo = new THREE.PlaneGeometry(1.4, 1.4);
-    const spriteMesh = new THREE.Mesh(spriteGeo, spriteMat);
-    spriteMesh.position.y = 0.70;
-    spriteMesh.visible = false; // Voxel mode default
-    heroGroup.add(spriteMesh);
+    const dummyBodyPivot = new THREE.Group();
+    dummyGroup.add(dummyBodyPivot);
 
-    const dirKeys = [
-      'south', 'south-east', 'east', 'north-east',
-      'north', 'north-west', 'west', 'south-west'
-    ];
-    const textures = {};
-    let loadedCount = 0;
-    const textureLoader = new THREE.TextureLoader();
+    const dummyMeshes = [];
+    const addDummyVoxel = (w, h, d, color, x, y, z, parent = dummyBodyPivot) => {
+      const mesh = createVoxel(w, h, d, color, x, y, z, parent);
+      dummyMeshes.push({ mesh, originalColor: color });
+      return mesh;
+    };
 
-    dirKeys.forEach(key => {
-      textureLoader.load(
-        `${key}.png`,
-        (tex) => {
-          tex.magFilter = THREE.NearestFilter;
-          tex.minFilter = THREE.NearestFilter;
-          tex.generateMipmaps = false;
-          tex.colorSpace = THREE.SRGBColorSpace;
-          textures[key] = tex;
-          loadedCount++;
-          if (key === 'south') {
-            spriteMat.map = tex;
-            spriteMat.needsUpdate = true;
-          }
-          console.log(`${key}.png loaded successfully!`);
-        },
-        undefined,
-        (err) => {
-          console.error(`Failed to load ${key}.png:`, err);
-        }
-      );
-    });
+    // Robust Wooden Log Body
+    addDummyVoxel(0.58, 0.85, 0.58, 0x8b5a2b, 0, 0.52, 0);
+    addDummyVoxel(0.60, 0.08, 0.60, 0x4a2e18, 0, 0.50, 0); // Metal banding
 
-    // --- 5. Locomotion Kinematics ---
+    // Dummy Head & Target Markers
+    addDummyVoxel(0.50, 0.46, 0.50, 0xa6703d, 0, 1.15, 0);
+    addDummyVoxel(0.10, 0.10, 0.04, 0x1e293b, -0.14, 1.18, 0.26); // Left button eye
+    addDummyVoxel(0.10, 0.10, 0.04, 0x1e293b, 0.14, 1.18, 0.26);  // Right button eye
+
+    // Prominent Red Frontal Facing Horn/Spike (Indicates Frontal 90° Cone!)
+    // Points forward towards +Z!
+    const horn = addDummyVoxel(0.18, 0.18, 0.32, 0xef4444, 0, 0.90, 0.40);
+
+    // Dummy Arms (T-Pose Straw training dummy)
+    addDummyVoxel(0.36, 0.14, 0.14, 0x8b5a2b, -0.44, 0.70, 0);
+    addDummyVoxel(0.36, 0.14, 0.14, 0x8b5a2b, 0.44, 0.70, 0);
+
+    // Dummy Facing: Points towards +Z (South) by default
+    const DUMMY_FACING_X = 0.0;
+    const DUMMY_FACING_Z = 1.0;
+
+    // ========================================================
+    // --- 4. Kinematics, Bump Math & Combat Logic ---
+    // ========================================================
     const MAX_SPEED = 5.2;
     const ACCEL = 42.0;
     const FRICTION = 48.0;
-    const HERO_RADIUS = 0.35;
 
-    let posX = 0.0, posZ = 0.0;
-    let velX = 0.0, velZ = 0.0;
-    let facingX = 0.0, facingZ = 1.0;
-    let animTime = 0.0;
-    let stepTimer = 0.0;
-    const STEP_RATE = 1.0 / 12.0; // 12 FPS Walk Cycle
+    let posX = 0, posZ = 0;
+    let velX = 0, velZ = 0;
+    let facingX = 0, facingZ = 1;
+    let hopCycle = 0;
 
-    // Crossy Road Hopping Variables
-    let hopCycle = 0.0;
-    let prevHopPhase = 0.0;
+    // Combat Stats & States
+    let heroHp = 100, heroMaxHp = 100;
+    let dummyHp = 100, dummyMaxHp = 100;
+    let heroCooldown = 0.0; // Base: 0.35s
+    const BASE_COOLDOWN = 0.35;
 
+    let heroKbX = 0, heroKbZ = 0;
+    let dummyKbX = 0, dummyKbZ = 0;
+    const KB_FRICTION = 28.0;
+
+    let heroFlashTimer = 0.0;
+    let dummyFlashTimer = 0.0;
+    let hitstopTimer = 0.0;
+    let shakeTimer = 0.0;
+
+    // Input States
     const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
-    let joyX = 0.0, joyY = 0.0;
+    let joyActive = false, joyInputX = 0, joyInputZ = 0;
 
-    window.addEventListener('keydown', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = true; });
-    window.addEventListener('keyup', e => { if (keys.hasOwnProperty(e.key)) keys[e.key] = false; });
+    window.addEventListener('keydown', (e) => {
+      if (keys.hasOwnProperty(e.key)) { keys[e.key] = true; e.preventDefault(); }
+    });
+    window.addEventListener('keyup', (e) => {
+      if (keys.hasOwnProperty(e.key)) { keys[e.key] = false; e.preventDefault(); }
+    });
 
-    // Touch Virtual Joystick
+    // Virtual Joystick
     const joyBase = document.getElementById('joystick-base');
     const joyKnob = document.getElementById('joystick-knob');
-    let isTouching = false;
-    let touchStartX = 0, touchStartY = 0;
+    let touchId = null, joyOriginX = 0, joyOriginY = 0;
 
-    function handleStart(x, y) {
-      if (x < window.innerWidth * 0.55) {
-        isTouching = true;
-        touchStartX = x; touchStartY = y;
-        joyBase.style.display = 'block'; joyBase.style.left = x + 'px'; joyBase.style.top = y + 'px';
-        joyKnob.style.display = 'block'; joyKnob.style.left = x + 'px'; joyKnob.style.top = y + 'px';
+    window.addEventListener('touchstart', (e) => {
+      if (e.target.closest('#hud') || e.target.closest('#guide-box')) return;
+      const t = e.changedTouches[0];
+      touchId = t.identifier;
+      joyActive = true;
+      joyOriginX = t.clientX; joyOriginY = t.clientY;
+      joyBase.style.left = joyOriginX + 'px'; joyBase.style.top = joyOriginY + 'px';
+      joyKnob.style.left = joyOriginX + 'px'; joyKnob.style.top = joyOriginY + 'px';
+      joyBase.style.display = 'block'; joyKnob.style.display = 'block';
+    }, { passive: false });
+
+    window.addEventListener('touchmove', (e) => {
+      if (!joyActive) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === touchId) {
+          const dx = t.clientX - joyOriginX;
+          const dy = t.clientY - joyOriginY;
+          const dist = Math.hypot(dx, dy);
+          const maxDist = 55;
+          const angle = Math.atan2(dy, dx);
+          const clamped = Math.min(dist, maxDist);
+          joyKnob.style.left = (joyOriginX + Math.cos(angle) * clamped) + 'px';
+          joyKnob.style.top = (joyOriginY + Math.sin(angle) * clamped) + 'px';
+          joyInputX = (Math.cos(angle) * clamped) / maxDist;
+          joyInputZ = (Math.sin(angle) * clamped) / maxDist;
+          e.preventDefault();
+          break;
+        }
+      }
+    }, { passive: false });
+
+    const endJoy = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchId) {
+          joyActive = false; touchId = null;
+          joyInputX = 0; joyInputZ = 0;
+          joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+          break;
+        }
+      }
+    };
+    window.addEventListener('touchend', endJoy);
+    window.addEventListener('touchcancel', endJoy);
+
+    // ========================================================
+    // --- 5. Floating Text & Spark FX ---
+    // ========================================================
+    const ftContainer = document.getElementById('floating-text-container');
+    const combatBanner = document.getElementById('combat-banner');
+
+    function spawnFloatingDamage(text, color, worldPos) {
+      const el = document.createElement('div');
+      el.className = 'floating-dmg';
+      el.textContent = text;
+      el.style.color = color;
+
+      // Project 3D world position to 2D screen
+      const p = worldPos.clone().project(camera);
+      const x = (p.x * 0.5 + 0.5) * window.innerWidth;
+      const y = (-p.y * 0.5 + 0.5) * window.innerHeight;
+      el.style.left = x + 'px';
+      el.style.top = y + 'px';
+
+      ftContainer.appendChild(el);
+      setTimeout(() => el.remove(), 850);
+    }
+
+    // Spark Particle System
+    const sparks = [];
+    const sparkGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
+    function spawnSparks(x, y, z, colorHex, count = 12) {
+      for (let i = 0; i < count; i++) {
+        const mat = new THREE.MeshBasicMaterial({ color: colorHex });
+        const m = new THREE.Mesh(sparkGeo, mat);
+        m.position.set(x, y, z);
+        scene.add(m);
+
+        const angle = Math.random() * Math.PI * 2;
+        const speed = 2.5 + Math.random() * 4.0;
+        const upward = 1.5 + Math.random() * 3.5;
+        sparks.push({
+          mesh: m,
+          vx: Math.cos(angle) * speed,
+          vy: upward,
+          vz: Math.sin(angle) * speed,
+          life: 0.35 + Math.random() * 0.2
+        });
       }
     }
-    function handleMove(x, y) {
-      if (!isTouching) return;
-      let dx = x - touchStartX, dy = y - touchStartY;
-      const maxDist = 65.0;
-      const dist = Math.hypot(dx, dy);
-      if (dist > maxDist) { dx = (dx / dist) * maxDist; dy = (dy / dist) * maxDist; }
-      joyKnob.style.left = (touchStartX + dx) + 'px';
-      joyKnob.style.top = (touchStartY + dy) + 'px';
-      const norm = dist / maxDist;
-      if (norm > 0.15) { joyX = dx / maxDist; joyY = dy / maxDist; }
-      else { joyX = 0; joyY = 0; }
-    }
-    function handleEnd() {
-      isTouching = false; joyX = 0; joyY = 0;
-      joyBase.style.display = 'none'; joyKnob.style.display = 'none';
+
+    function updateSparks(dt) {
+      for (let i = sparks.length - 1; i >= 0; i--) {
+        const s = sparks[i];
+        s.life -= dt;
+        s.vy -= 14.0 * dt; // Gravity
+        s.mesh.position.x += s.vx * dt;
+        s.mesh.position.y += s.vy * dt;
+        s.mesh.position.z += s.vz * dt;
+        if (s.life <= 0) {
+          scene.remove(s.mesh);
+          s.mesh.geometry.dispose();
+          s.mesh.material.dispose();
+          sparks.splice(i, 1);
+        }
+      }
     }
 
-    window.addEventListener('touchstart', e => { handleStart(e.touches[0].clientX, e.touches[0].clientY); });
-    window.addEventListener('touchmove', e => { handleMove(e.touches[0].clientX, e.touches[0].clientY); });
-    window.addEventListener('touchend', handleEnd);
-    window.addEventListener('mousedown', e => { handleStart(e.clientX, e.clientY); });
-    window.addEventListener('mousemove', e => { handleMove(e.clientX, e.clientY); });
-    window.addEventListener('mouseup', handleEnd);
+    // ========================================================
+    // --- 6. Layer 2 Micro Bump Resolution Function ---
+    // ========================================================
+    function resolveMicroBump() {
+      const dummyX = dummyGroup.position.x;
+      const dummyZ = dummyGroup.position.z;
 
-    // --- 6. Main Render Loop ---
+      const diffX = posX - dummyX;
+      const diffZ = posZ - dummyZ;
+      const dist = Math.hypot(diffX, diffZ);
+      const COLLISION_RADIUS = 0.85; // Sum of hero (0.40) & dummy (0.45) radii
+
+      if (dist < COLLISION_RADIUS) {
+        // Contact approach unit vector (from Dummy towards Hero)
+        const contactX = diffX / (dist || 0.001);
+        const contactZ = diffZ / (dist || 0.001);
+
+        // Angle Evaluation: cos(theta) = F_target . V_contact
+        const angleCos = DUMMY_FACING_X * contactX + DUMMY_FACING_Z * contactZ;
+        const isFrontal = angleCos >= 0.70710678; // cos(45 deg) threshold
+
+        // Penetration resolution
+        const overlap = (COLLISION_RADIUS - dist) + 0.04;
+        posX += contactX * (overlap * 0.5);
+        posZ += contactZ * (overlap * 0.5);
+        dummyGroup.position.x -= contactX * (overlap * 0.5);
+        dummyGroup.position.z -= contactZ * (overlap * 0.5);
+
+        // 1. Attack Cooldown Check (No-iFrame Multi-hit prevention)
+        if (heroCooldown > 0.0) {
+          // In cooldown: Rigid bounce separation ONLY, 0 damage!
+          heroKbX = contactX * 3.8;
+          heroKbZ = contactZ * 3.8;
+          dummyKbX = -contactX * 1.8;
+          dummyKbZ = -contactZ * 1.8;
+          return;
+        }
+
+        // 2. Valid Hit Execution
+        heroCooldown = BASE_COOLDOWN;
+        hitstopTimer = 0.04; // 0.04s Micro-freeze
+        shakeTimer = 0.14;   // Micro screen shake
+
+        const hitPos = new THREE.Vector3(
+          dummyX + contactX * 0.45,
+          0.85,
+          dummyZ + contactZ * 0.45
+        );
+
+        if (isFrontal) {
+          // --- Frontal Clash: Mutual Damage ---
+          const heroDmg = 6;
+          const dummyDmg = 10;
+          heroHp = Math.max(0, heroHp - heroDmg);
+          dummyHp = Math.max(0, dummyHp - dummyDmg);
+
+          // Equal knockback
+          heroKbX = contactX * 5.2;
+          heroKbZ = contactZ * 5.2;
+          dummyKbX = -contactX * 4.8;
+          dummyKbZ = -contactZ * 4.8;
+
+          heroFlashTimer = 0.12;
+          dummyFlashTimer = 0.12;
+
+          spawnFloatingDamage(`💥 -${dummyDmg} CLASH!`, "#fca5a5", hitPos);
+          spawnFloatingDamage(`⚠️ -${heroDmg} DAMAGE`, "#ef4444", new THREE.Vector3(posX, 1.2, posZ));
+          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0xef4444, 16);
+
+          combatBanner.className = 'frontal';
+          combatBanner.innerHTML = `💥 <b>정면 충돌 (Frontal Clash)!</b> 상호 피해: 용사 -${heroDmg} HP, 더미 -${dummyDmg} HP`;
+        } else {
+          // --- Flank/Rear Advantage: Unilateral Strike ---
+          const dummyDmg = 12; // Bonus damage
+          dummyHp = Math.max(0, dummyHp - dummyDmg);
+
+          // Heavy knockback on target, minor recoil on hero
+          heroKbX = contactX * 1.4;
+          heroKbZ = contactZ * 1.4;
+          dummyKbX = -contactX * 6.8;
+          dummyKbZ = -contactZ * 6.8;
+
+          dummyFlashTimer = 0.14;
+
+          spawnFloatingDamage(`⚡ -${dummyDmg} ADVANTAGE!`, "#34d399", hitPos);
+          spawnFloatingDamage(`🛡️ 0 (SAFE)`, "#38bdf8", new THREE.Vector3(posX, 1.2, posZ));
+          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x38bdf8, 20);
+
+          combatBanner.className = 'advantage';
+          combatBanner.innerHTML = `⚡ <b>측/후면 일방 타격 (Advantage)!</b> 용사 0피해 방어, 더미 -${dummyDmg} HP & 강한 넉백!`;
+        }
+
+        // Loop continuous dummy HP recovery
+        if (dummyHp <= 0) {
+          dummyHp = dummyMaxHp;
+        }
+      }
+    }
+
+    // Flash Mesh Effect
+    function setMeshColor(meshList, colorHex) {
+      meshList.forEach(item => {
+        item.mesh.material.color.setHex(colorHex);
+      });
+    }
+    function restoreMeshColor(meshList) {
+      meshList.forEach(item => {
+        item.mesh.material.color.setHex(item.originalColor);
+      });
+    }
+
+    // Reset Dummy Position Helper
+    window.resetDummyPosition = () => {
+      dummyGroup.position.set(0, 0, -3.0);
+      dummyKbX = 0; dummyKbZ = 0;
+      dummyHp = 100;
+      combatBanner.className = '';
+      combatBanner.innerHTML = '더미 인형 위치 및 HP 리셋 완료!';
+    };
+
+    // ========================================================
+    // --- 7. Main Game Loop ---
+    // ========================================================
+    const heroHpFill = document.getElementById('hero-hp-fill');
+    const heroHpVal = document.getElementById('hero-hp-val');
+    const dummyHpFill = document.getElementById('dummy-hp-fill');
+    const dummyHpVal = document.getElementById('dummy-hp-val');
+    const cdFill = document.getElementById('cooldown-fill');
+    const cdVal = document.getElementById('cooldown-val');
+
     let lastTime = performance.now();
-    const statsText = document.getElementById('stats-text');
 
     function animate(currentTime) {
       requestAnimationFrame(animate);
-      const dt = Math.min((currentTime - lastTime) / 1000, 0.1);
+
+      const dt = Math.min((currentTime - lastTime) / 1000, 0.05);
       lastTime = currentTime;
 
-      // Calculate Input
-      let inputX = (keys.d || keys.ArrowRight ? 1 : 0) - (keys.a || keys.ArrowLeft ? 1 : 0);
-      let inputZ = (keys.s || keys.ArrowDown ? 1 : 0) - (keys.w || keys.ArrowUp ? 1 : 0);
+      // 0. Hitstop (Micro-freeze 0.04s)
+      if (hitstopTimer > 0.0) {
+        hitstopTimer -= dt;
+        renderer.render(scene, camera);
+        return;
+      }
 
-      if (Math.hypot(joyX, joyY) > 0.1) {
-        inputX = joyX;
-        inputZ = joyY;
+      // 1. Attack Cooldown Update
+      if (heroCooldown > 0.0) {
+        heroCooldown = Math.max(0, heroCooldown - dt);
+        const cdPercent = (heroCooldown / BASE_COOLDOWN) * 100;
+        cdFill.style.width = cdPercent + '%';
+        cdVal.textContent = heroCooldown.toFixed(2) + 's';
+      } else {
+        cdFill.style.width = '0%';
+        cdVal.textContent = 'READY';
+      }
+
+      // Flash feedback timers
+      if (heroFlashTimer > 0.0) {
+        heroFlashTimer -= dt;
+        setMeshColor(heroMeshes, 0xff4444);
+        if (heroFlashTimer <= 0.0) restoreMeshColor(heroMeshes);
+      }
+      if (dummyFlashTimer > 0.0) {
+        dummyFlashTimer -= dt;
+        setMeshColor(dummyMeshes, 0xffe066);
+        if (dummyFlashTimer <= 0.0) restoreMeshColor(dummyMeshes);
+      }
+
+      // 2. Input Processing
+      let inputX = 0, inputZ = 0;
+      if (keys.w || keys.ArrowUp) inputZ -= 1;
+      if (keys.s || keys.ArrowDown) inputZ += 1;
+      if (keys.a || keys.ArrowLeft) inputX -= 1;
+      if (keys.d || keys.ArrowRight) inputX += 1;
+
+      if (joyActive) {
+        inputX = joyInputX;
+        inputZ = joyInputZ;
       }
 
       const inputLen = Math.hypot(inputX, inputZ);
@@ -784,7 +749,12 @@
         targetDirZ = inputZ / Math.max(1.0, inputLen);
       }
 
-      // Kinematics: Acceleration & Braking
+      // 3. Locomotion Kinematics
+      const moveToward = (current, target, maxDelta) => {
+        if (Math.abs(target - current) <= maxDelta) return target;
+        return current + Math.sign(target - current) * maxDelta;
+      };
+
       if (inputLen > 0.05) {
         velX = moveToward(velX, targetDirX * MAX_SPEED, ACCEL * dt);
         velZ = moveToward(velZ, targetDirZ * MAX_SPEED, ACCEL * dt);
@@ -795,208 +765,110 @@
         velZ = moveToward(velZ, 0, FRICTION * dt);
       }
 
-      const speed = Math.hypot(velX, velZ);
+      // 4. Knockback Damping
+      heroKbX = moveToward(heroKbX, 0, KB_FRICTION * dt);
+      heroKbZ = moveToward(heroKbZ, 0, KB_FRICTION * dt);
+      dummyKbX = moveToward(dummyKbX, 0, KB_FRICTION * dt);
+      dummyKbZ = moveToward(dummyKbZ, 0, KB_FRICTION * dt);
 
-      // Update Dust Particles
-      updateDust(dt);
+      // Apply velocity + knockback
+      posX += (velX + heroKbX) * dt;
+      posZ += (velZ + heroKbZ) * dt;
 
-      // 8-Directional Angle Calculation (used for both sprite texture and stats/yaw)
-      const deg = Math.atan2(facingX, facingZ) * (180 / Math.PI);
-      let dirKey = 'south';
-      let dirName = '남쪽 (정면)';
+      // Dummy movement by knockback
+      dummyGroup.position.x += dummyKbX * dt;
+      dummyGroup.position.z += dummyKbZ * dt;
 
-      if (deg >= -22.5 && deg < 22.5) {
-        dirKey = 'south'; dirName = '남쪽 (정면)';
-      } else if (deg >= 22.5 && deg < 67.5) {
-        dirKey = 'south-east'; dirName = '남동쪽';
-      } else if (deg >= 67.5 && deg < 112.5) {
-        dirKey = 'east'; dirName = '동쪽 (우측)';
-      } else if (deg >= 112.5 && deg < 157.5) {
-        dirKey = 'north-east'; dirName = '북동쪽';
-      } else if (deg >= 157.5 || deg < -157.5) {
-        dirKey = 'north'; dirName = '북쪽 (뒷모습)';
-      } else if (deg >= -157.5 && deg < -112.5) {
-        dirKey = 'north-west'; dirName = '북서쪽';
-      } else if (deg >= -112.5 && deg < -67.5) {
-        dirKey = 'west'; dirName = '서쪽 (좌측)';
-      } else {
-        dirKey = 'south-west'; dirName = '남서쪽';
-      }
+      // Arena boundary clamp
+      posX = Math.max(-11.5, Math.min(11.5, posX));
+      posZ = Math.max(-11.5, Math.min(11.5, posZ));
+      dummyGroup.position.x = Math.max(-11.5, Math.min(11.5, dummyGroup.position.x));
+      dummyGroup.position.z = Math.max(-11.5, Math.min(11.5, dummyGroup.position.z));
 
-      // -------------------------------------------------------------------------
-      // Visual Style Mode Logic: 3D Voxel (Crossy Road) vs 2D Billboard Sprite
-      // -------------------------------------------------------------------------
-      if (currentStyle === 'voxel') {
-        voxelHero.visible = true;
-        spriteMesh.visible = false;
-
-        if (speed > 0.15) {
-          // --- Crossy Road Rhythmic Hopping Locomotion ---
-          const hopSpeed = (speed / MAX_SPEED) * (Math.PI * 4.6);
-          hopCycle += hopSpeed * dt;
-          const hopPhase = hopCycle % Math.PI;
-
-          // Landing detection -> dust poofs!
-          if (prevHopPhase > 2.2 && hopPhase < 1.0) {
-            spawnLandingDust(posX, posZ);
-          }
-          prevHopPhase = hopPhase;
-
-          // Parabolic hop arc (0.0 to 1.0)
-          const hopArc = Math.sin(hopPhase);
-          bodyPivot.position.y = hopArc * 0.32; // Jump height
-
-          // Crossy Road Squash & Stretch
-          // On takeoff/landing (hopArc ~ 0): squash wide (0.84 Y, 1.12 XZ)
-          // At peak (hopArc ~ 1): stretch tall (1.20 Y, 0.90 XZ)
-          const stretchY = 0.84 + hopArc * 0.36;
-          const stretchXZ = 1.12 - hopArc * 0.22;
-          bodyPivot.scale.set(stretchXZ, stretchY, stretchXZ);
-
-          // Forward momentum lean tilt (~13 degrees into direction of travel)
-          bodyPivot.rotation.x = -hopArc * 0.22;
-
-          // Alternating Leg kicks and Heroic Arm rhythm
-          const stepIdx = Math.floor(hopCycle / Math.PI);
-          const legSide = (stepIdx % 2 === 0) ? 1.0 : -1.0;
-          const legSwing = Math.sin(hopPhase) * legSide * 0.58;
-          if (leftLegPivot) {
-            leftLegPivot.rotation.x = legSwing;
-          }
-          if (rightLegPivot) {
-            rightLegPivot.rotation.x = -legSwing;
-          }
-          // Shield guard bobs defensively in front
-          if (leftArmPivot) {
-            leftArmPivot.rotation.x = -0.55 - Math.sin(hopPhase) * 0.16;
-            leftArmPivot.rotation.y = 0.35 + Math.cos(hopPhase) * 0.05;
-            leftArmPivot.rotation.z = 0.15;
-          }
-          // Sword hand pumps actively forward in ready strike
-          if (rightArmPivot) {
-            rightArmPivot.rotation.x = -0.70 + Math.sin(hopPhase) * 0.22;
-            rightArmPivot.rotation.y = -0.20 + Math.cos(hopPhase) * 0.05;
-            rightArmPivot.rotation.z = -0.10;
-          }
-
-          // Dynamic Ground Shadow (shrinks & fades at jump apex)
-          const shadowScale = 1.0 - hopArc * 0.35;
-          shadowMesh.scale.set(shadowScale, 1.0, shadowScale);
-          shadowMat.opacity = 0.55 - hopArc * 0.25;
-
-          // Smooth 3D Yaw Rotation toward movement direction
-          const targetYaw = Math.atan2(facingX, facingZ);
-          voxelHero.rotation.y = lerpAngle(voxelHero.rotation.y, targetYaw, 18.0 * dt);
-        } else {
-          // Idle state: smooth settle with heroic combat guard breathing
-          hopCycle = 0.0;
-          prevHopPhase = 0.0;
-          bodyPivot.position.y = moveToward(bodyPivot.position.y, 0, 4.0 * dt);
-          bodyPivot.rotation.x = moveToward(bodyPivot.rotation.x, 0, 6.0 * dt);
-          if (leftLegPivot) leftLegPivot.rotation.x = moveToward(leftLegPivot.rotation.x, 0, 8.0 * dt);
-          if (rightLegPivot) rightLegPivot.rotation.x = moveToward(rightLegPivot.rotation.x, 0, 8.0 * dt);
-
-          // Heroic guard stance breathing (sword and shield stay forward!)
-          const idleBreath = Math.sin(currentTime * 0.0035) * 0.025;
-          if (leftArmPivot) {
-            leftArmPivot.rotation.x = moveToward(leftArmPivot.rotation.x, -0.55 + idleBreath, 5.0 * dt);
-            leftArmPivot.rotation.y = moveToward(leftArmPivot.rotation.y, 0.35, 5.0 * dt);
-            leftArmPivot.rotation.z = moveToward(leftArmPivot.rotation.z, 0.15, 5.0 * dt);
-          }
-          if (rightArmPivot) {
-            rightArmPivot.rotation.x = moveToward(rightArmPivot.rotation.x, -0.70 - idleBreath, 5.0 * dt);
-            rightArmPivot.rotation.y = moveToward(rightArmPivot.rotation.y, -0.20, 5.0 * dt);
-            rightArmPivot.rotation.z = moveToward(rightArmPivot.rotation.z, -0.10, 5.0 * dt);
-          }
-
-          const breath = Math.sin(currentTime * 0.0035) * 0.025;
-          bodyPivot.scale.set(1.0 - breath, 1.0 + breath, 1.0 - breath);
-
-          shadowMesh.scale.set(1.0, 1.0, 1.0);
-          shadowMat.opacity = 0.55;
-        }
-
-        statsText.textContent = `[3D 복셀: ${currentEquipment === 'iron' ? '🛡️ 철갑옷 기사 세트' : '👔 기본 모험가 복장'}${showWeapons ? ' (검/방패 장착)' : ''}] 위치: (${posX.toFixed(1)}, ${posZ.toFixed(1)}) | 속도: ${speed.toFixed(1)} m/s | 홉: ${speed > 0.15 ? '뜀박질' : '대기'}`;
-      } else {
-        // --- 2D Billboard Sprite Mode ---
-        voxelHero.visible = false;
-        spriteMesh.visible = true;
-
-        if (speed > 0.15) {
-          stepTimer += dt;
-          if (stepTimer >= STEP_RATE) {
-            stepTimer = 0.0;
-            animTime += STEP_RATE * 14.0;
-            const bounce = Math.abs(Math.sin(animTime)) * 0.08;
-            const squash = 1.0 + Math.sin(animTime) * 0.05;
-            spriteMesh.position.y = 0.70 + bounce;
-            spriteMesh.scale.set(1.4, 1.4 * squash, 1.4);
-          }
-        } else {
-          spriteMesh.position.y = 0.70;
-          spriteMesh.scale.set(1.4, 1.4, 1.4);
-          animTime = 0.0;
-        }
-
-        const activeTex = textures[dirKey] || textures.south;
-        if (activeTex && spriteMat.map !== activeTex) {
-          spriteMat.map = activeTex;
-          spriteMat.needsUpdate = true;
-        }
-
-        spriteMesh.quaternion.copy(camera.quaternion);
-        shadowMesh.scale.set(1.0, 1.0, 1.0);
-        shadowMat.opacity = 0.55;
-
-        statsText.textContent = `[2D 도트 스프라이트] 위치: (${posX.toFixed(1)}, ${posZ.toFixed(1)}) | 속도: ${speed.toFixed(1)} m/s | 방향: ${dirName} (${dirKey}.png) | 원본 8방향 텍스처`;
-      }
-
-      const miniStats = document.getElementById('hud-mini-stats');
-      if (miniStats) {
-        miniStats.textContent = `(${posX.toFixed(1)}, ${posZ.toFixed(1)}) | ${speed.toFixed(1)}m/s`;
-      }
-
-      // Boundaries & Obstacle Collisions
-      let nextX = posX + velX * dt;
-      let nextZ = posZ + velZ * dt;
-
-      nextX = Math.max(-8.2, Math.min(8.2, nextX));
-      nextZ = Math.max(-8.2, Math.min(8.2, nextZ));
-
-      pillars.forEach(p => {
-        const dx = nextX - p.x;
-        const dz = nextZ - p.z;
-        const dist = Math.hypot(dx, dz);
-        const minDist = p.r + HERO_RADIUS;
-        if (dist < minDist && dist > 0.001) {
-          const pushX = (dx / dist) * (minDist - dist);
-          const pushZ = (dz / dist) * (minDist - dist);
-          nextX += pushX;
-          nextZ += pushZ;
-        }
-      });
-
-      posX = nextX;
-      posZ = nextZ;
       heroGroup.position.set(posX, 0, posZ);
 
-      // Camera Smooth Tracking (Translation Only - ZERO Rotation / Map Tilt)
-      camera.position.x += (posX - camera.position.x) * 6.5 * dt;
-      camera.position.y = camHeight;
-      camera.position.z += ((posZ + camDistance) - camera.position.z) * 6.5 * dt;
-      // Absolute lock: zero yaw, zero roll, purely parallel map view
-      camera.rotation.set(-PITCH_ANGLE, 0, 0);
+      // 5. Layer 2 Micro Bump Resolution
+      resolveMicroBump();
+
+      // 6. Crossy Road Hopping & Visuals
+      const speed = Math.hypot(velX, velZ);
+      if (speed > 0.15) {
+        hopCycle += (speed / MAX_SPEED) * (Math.PI * 4.6) * dt;
+        const hopArc = Math.sin(hopCycle % Math.PI);
+        heroBodyPivot.position.y = hopArc * 0.28;
+        heroBodyPivot.scale.set(1.08 - hopArc * 0.16, 0.88 + hopArc * 0.30, 1.08 - hopArc * 0.16);
+
+        const targetYaw = Math.atan2(facingX, facingZ);
+        heroGroup.rotation.y = targetYaw;
+      } else {
+        hopCycle = 0;
+        heroBodyPivot.position.y = moveToward(heroBodyPivot.position.y, 0, 4.0 * dt);
+        heroBodyPivot.scale.set(1.0, 1.0, 1.0);
+      }
+
+      // Update Particle FX
+      updateSparks(dt);
+
+      // 7. Orthogonal Camera Follow & Micro Screen Shake
+      let shakeOffsetX = 0, shakeOffsetZ = 0;
+      if (shakeTimer > 0.0) {
+        shakeTimer -= dt;
+        shakeOffsetX = (Math.random() - 0.5) * 0.18;
+        shakeOffsetZ = (Math.random() - 0.5) * 0.18;
+      }
+      camera.position.x = posX + shakeOffsetX;
+      camera.position.z = posZ + CAM_Z + shakeOffsetZ;
+      camera.position.y = CAM_Y;
+
+      // 8. HUD Bars Update
+      heroHpFill.style.width = (heroHp / heroMaxHp * 100) + '%';
+      heroHpVal.textContent = `${heroHp}/${heroMaxHp}`;
+      dummyHpFill.style.width = (dummyHp / dummyMaxHp * 100) + '%';
+      dummyHpVal.textContent = `${dummyHp}/${dummyMaxHp}`;
 
       renderer.render(scene, camera);
     }
-
-    function moveToward(current, target, maxDelta) {
-      if (Math.abs(target - current) <= maxDelta) return target;
-      return current + Math.sign(target - current) * maxDelta;
-    }
-
-    window.addEventListener('resize', applyResolution);
     requestAnimationFrame(animate);
+
+    // ========================================================
+    // --- 8. UI Helpers & ViewSize Zoom ---
+    // ========================================================
+    window.updateViewSize = (val) => {
+      orthoSize = parseFloat(val);
+      document.getElementById('view-size-text').textContent = orthoSize.toFixed(1) + 'm';
+      const a = window.innerWidth / window.innerHeight;
+      camera.left = -orthoSize * a / 2;
+      camera.right = orthoSize * a / 2;
+      camera.top = orthoSize / 2;
+      camera.bottom = -orthoSize / 2;
+      camera.updateProjectionMatrix();
+
+      document.querySelectorAll('.btn-row .btn').forEach(b => b.classList.remove('active'));
+      const activeBtn = document.getElementById('btn-' + Math.round(orthoSize));
+      if (activeBtn) activeBtn.classList.add('active');
+    };
+
+    window.toggleHud = () => {
+      const b = document.getElementById('hud-body');
+      const btn = document.getElementById('btn-toggle-hud');
+      if (b.style.display === 'none') {
+        b.style.display = 'block';
+        btn.textContent = '🔼 접기';
+      } else {
+        b.style.display = 'none';
+        btn.textContent = '🔽 메뉴';
+      }
+    };
+
+    window.addEventListener('resize', () => {
+      const a = window.innerWidth / window.innerHeight;
+      camera.left = -orthoSize * a / 2;
+      camera.right = orthoSize * a / 2;
+      camera.top = orthoSize / 2;
+      camera.bottom = -orthoSize / 2;
+      camera.updateProjectionMatrix();
+      renderer.setSize(window.innerWidth, window.innerHeight);
+    });
   </script>
 </body>
 </html>
