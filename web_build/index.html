@@ -379,79 +379,60 @@
 
       const meshes = [];
 
-      // --- Ragnarok Poring Jelly Body (Plump, Smooth, Shiny Pink Mochi) ---
-      const slimeGeo = new THREE.SphereGeometry(0.46, 24, 20);
-      slimeGeo.scale(1.10, 0.90, 1.10);
-      const slimeMat = new THREE.MeshPhongMaterial({
-        color: colorHex,
-        emissive: 0x991b3b,
-        emissiveIntensity: 0.18,
-        specular: 0xffffff,
-        shininess: 45,
-        transparent: true,
-        opacity: 0.95
-      });
-      const slimeMesh = new THREE.Mesh(slimeGeo, slimeMat);
-      slimeMesh.position.y = 0.32;
-      slimeMesh.castShadow = true;
-      bodyPivot.add(slimeMesh);
-      meshes.push({ mesh: slimeMesh, originalColor: colorHex });
-
-      // --- Iconic Poring Face: Big Shiny Oval Eyes & Cute Open Smile ---
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f0b12 });
-      const glintMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-
-      const makePoringEye = (x, y, z) => {
-        const eyeGroup = new THREE.Group();
-        eyeGroup.position.set(x, y, z);
-        bodyPivot.add(eyeGroup);
-
-        // Smooth Vertical Pill Eye
-        const baseEyeGeo = new THREE.SphereGeometry(0.08, 14, 12);
-        baseEyeGeo.scale(0.85, 1.25, 0.45);
-        const baseEye = new THREE.Mesh(baseEyeGeo, eyeMat);
-        eyeGroup.add(baseEye);
-
-        // Catchlight Glint (Top-Left)
-        const glint1 = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), glintMat);
-        glint1.position.set(-0.02, 0.04, 0.035);
-        eyeGroup.add(glint1);
-
-        // Sub Catchlight (Bottom-Right)
-        const glint2 = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 8), glintMat);
-        glint2.position.set(0.022, -0.035, 0.035);
-        eyeGroup.add(glint2);
-
-        return eyeGroup;
+      // Helper to add voxel cube to poring and track it for flashing
+      const addPoringVoxel = (w, h, d, color, x, y, z) => {
+        const geo = new THREE.BoxGeometry(w, h, d);
+        const mat = new THREE.MeshLambertMaterial({ color: color });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.position.set(x, y, z);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        bodyPivot.add(mesh);
+        meshes.push({ mesh, originalColor: color });
+        return mesh;
       };
 
-      const eyeL = makePoringEye(-0.16, 0.35, 0.38);
-      const eyeR = makePoringEye(0.16, 0.35, 0.38);
+      // Voxel Color Palettes (ID 0: Strawberry Milk Pink, ID 1: Cherry Berry Pink)
+      const baseTone   = (id === 0) ? 0xe11d48 : 0xbe123c; // Bottom shadow
+      const lowerTone  = (id === 0) ? 0xf43f5e : 0xe11d48; // Main lower bulge
+      const midTone    = (id === 0) ? 0xfb7185 : 0xf43f5e; // Mid body & cheeks
+      const upperTone  = (id === 0) ? 0xfda4af : 0xfb7185; // Upper dome
+      const crownTone  = (id === 0) ? 0xfecdd3 : 0xfda4af; // Top crown
+      const blushTone  = 0xbe123c; // Rosy cherry cheeks
 
-      // Cute Rosy Peach Blush Cheeks
-      const blushMat = new THREE.MeshBasicMaterial({
-        color: 0xff99aa,
-        transparent: true,
-        opacity: 0.75
-      });
-      const blushGeo = new THREE.BoxGeometry(0.10, 0.045, 0.02);
-      const blushL = new THREE.Mesh(blushGeo, blushMat);
-      blushL.position.set(-0.27, 0.26, 0.35);
-      bodyPivot.add(blushL);
-      const blushR = new THREE.Mesh(blushGeo, blushMat);
-      blushR.position.set(0.27, 0.26, 0.35);
-      bodyPivot.add(blushR);
+      // --- 3D Voxel Poring Body (Layered Mochi Silhouette) ---
+      // 1. Base Layer (Bottom Shadow)
+      addPoringVoxel(0.64, 0.14, 0.64, baseTone, 0, 0.08, 0);
+      // 2. Lower Plump Bulge (Main Cheeks & Bottom)
+      addPoringVoxel(0.76, 0.16, 0.76, lowerTone, 0, 0.22, 0);
+      // 3. Mid Face Layer
+      addPoringVoxel(0.74, 0.16, 0.74, midTone, 0, 0.38, 0);
+      // 4. Upper Dome Layer
+      addPoringVoxel(0.60, 0.14, 0.60, upperTone, 0, 0.52, 0);
+      // 5. Crown Top Layer
+      addPoringVoxel(0.36, 0.10, 0.36, crownTone, 0, 0.64, 0);
 
-      // Innocent Open Happy Smile
-      const mouthGeo = new THREE.BoxGeometry(0.07, 0.045, 0.02);
-      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x991b1b });
-      const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-      mouth.position.set(0, 0.26, 0.44);
-      bodyPivot.add(mouth);
+      // --- 3D Voxel Face ---
+      // Left Eye: Vertical Voxel Bar
+      addPoringVoxel(0.09, 0.18, 0.04, 0x0f0b15, -0.16, 0.38, 0.38);
+      // Left Eye Sparkle Glint: Protruding White Voxel
+      addPoringVoxel(0.05, 0.06, 0.04, 0xffffff, -0.17, 0.42, 0.39);
+
+      // Right Eye: Vertical Voxel Bar
+      addPoringVoxel(0.09, 0.18, 0.04, 0x0f0b15, 0.16, 0.38, 0.38);
+      // Right Eye Sparkle Glint: Protruding White Voxel
+      addPoringVoxel(0.05, 0.06, 0.04, 0xffffff, 0.15, 0.42, 0.39);
+
+      // Rosy Cheeks (Blush Voxels)
+      addPoringVoxel(0.12, 0.07, 0.03, blushTone, -0.27, 0.27, 0.38);
+      addPoringVoxel(0.12, 0.07, 0.03, blushTone, 0.27, 0.27, 0.38);
+
+      // Innocent Voxel Mouth
+      addPoringVoxel(0.08, 0.05, 0.03, 0x881337, 0, 0.28, 0.38);
 
       // Dizzy Stars Container (Shown during RECOVERY state)
       const dizzyStarsGroup = new THREE.Group();
-      dizzyStarsGroup.position.set(0, 0.75, 0);
+      dizzyStarsGroup.position.set(0, 0.85, 0);
       dizzyStarsGroup.visible = false;
       bodyPivot.add(dizzyStarsGroup);
 
@@ -460,7 +441,7 @@
       for (let sIdx = 0; sIdx < 3; sIdx++) {
         const star = new THREE.Mesh(starGeo, starMat);
         const ang = (sIdx / 3) * Math.PI * 2;
-        star.position.set(Math.cos(ang) * 0.28, 0, Math.sin(ang) * 0.28);
+        star.position.set(Math.cos(ang) * 0.32, 0, Math.sin(ang) * 0.32);
         dizzyStarsGroup.add(star);
       }
 
