@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Overspire - Layer 2: Micro Bump Combat</title>
+  <title>Overspire - Layer 3: Tactical Slime Combat</title>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
     body, html { width: 100%; height: 100%; overflow: hidden; background: #0c0e14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
@@ -11,57 +11,46 @@
     #canvas-container { 
       width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
     }
-    
-    canvas {
-      display: block;
-      width: 100%;
-      height: 100%;
-    }
-    canvas.pixelated {
-      image-rendering: -moz-crisp-edges;
-      image-rendering: -webkit-crisp-edges;
-      image-rendering: pixelated;
-      image-rendering: crisp-edges;
-    }
+    canvas { display: block; width: 100%; height: 100%; }
 
     /* HUD */
     #hud {
       position: absolute; top: 10px; left: 10px;
-      max-width: 400px; width: calc(100vw - 20px);
-      background: rgba(12, 16, 24, 0.90);
-      border: 1px solid rgba(0, 208, 224, 0.40);
+      max-width: 420px; width: calc(100vw - 20px);
+      background: rgba(12, 16, 24, 0.92);
+      border: 1px solid rgba(0, 208, 224, 0.45);
       border-radius: 8px;
       padding: 10px 14px;
       color: #eee;
       font-size: 12px;
       line-height: 1.4;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.65);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
       z-index: 10;
-      backdrop-filter: blur(5px);
+      backdrop-filter: blur(6px);
     }
     #hud h1 { font-size: 14px; color: #00e5ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
     
-    /* Health & Cooldown Bars */
+    /* Bars */
     .bar-container { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
-    .bar-label { width: 62px; font-size: 11px; font-weight: 600; color: #cbd5e1; }
+    .bar-label { width: 72px; font-size: 11px; font-weight: 600; color: #cbd5e1; }
     .bar-bg { flex: 1; height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; border: 1px solid #334155; }
-    .bar-fill { height: 100%; transition: width 0.15s ease-out; }
+    .bar-fill { height: 100%; transition: width 0.1s ease-out; }
     .fill-hero { background: linear-gradient(90deg, #10b981, #34d399); }
-    .fill-dummy { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+    .fill-slime { background: linear-gradient(90deg, #22c55e, #86efac); }
     .fill-cooldown { background: linear-gradient(90deg, #0284c7, #38bdf8); }
 
     /* Combat Notification Banner */
     #combat-banner {
       margin-top: 6px; padding: 6px 10px; border-radius: 6px;
       font-weight: bold; font-size: 11px; text-align: center;
-      background: rgba(30, 41, 59, 0.8); border: 1px solid #475569;
+      background: rgba(30, 41, 59, 0.85); border: 1px solid #475569;
       color: #94a3b8; transition: all 0.2s;
     }
     #combat-banner.frontal {
-      background: rgba(220, 38, 38, 0.25); border-color: #ef4444; color: #fca5a5;
+      background: rgba(220, 38, 38, 0.3); border-color: #ef4444; color: #fca5a5;
     }
     #combat-banner.advantage {
-      background: rgba(16, 185, 129, 0.25); border-color: #10b981; color: #6ee7b7;
+      background: rgba(16, 185, 129, 0.3); border-color: #10b981; color: #6ee7b7;
     }
 
     /* Buttons */
@@ -96,7 +85,7 @@
     /* Guide overlay */
     #guide-box {
       position: absolute; bottom: 12px; right: 12px;
-      max-width: 320px; background: rgba(12, 16, 24, 0.90);
+      max-width: 340px; background: rgba(12, 16, 24, 0.92);
       border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
       padding: 8px 12px; font-size: 11px; color: #94a3b8; line-height: 1.4;
       pointer-events: none; z-index: 5;
@@ -126,7 +115,7 @@
   <div id="hud">
     <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
       <h1 style="font-size: 13px; color: #00e5ff; margin: 0;">
-        ⚔️ Overspire <span style="font-size: 11px; color: #f59e0b; font-weight: normal;">[Layer 2: Micro Bump]</span>
+        ⚔️ Overspire <span style="font-size: 11px; color: #10b981; font-weight: normal;">[Layer 3: Tactical Slime AI]</span>
       </h1>
       <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="padding: 2px 8px; font-size: 11px; background: #0284c7; color: #fff;">
         🔼 접기
@@ -140,44 +129,48 @@
         <div class="bar-bg">
           <div class="bar-fill fill-hero" id="hero-hp-fill" style="width: 100%;"></div>
         </div>
-        <span id="hero-hp-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
+        <span id="hero-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
       </div>
 
-      <!-- Dummy Target Health Bar -->
+      <!-- Slime 1 Health Bar -->
       <div class="bar-container">
-        <span class="bar-label">더미 HP</span>
+        <span class="bar-label">슬라임 A</span>
         <div class="bar-bg">
-          <div class="bar-fill fill-dummy" id="dummy-hp-fill" style="width: 100%;"></div>
+          <div class="bar-fill fill-slime" id="slime-0-hp-fill" style="width: 100%;"></div>
         </div>
-        <span id="dummy-hp-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
+        <span id="slime-0-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
+      </div>
+
+      <!-- Slime 2 Health Bar -->
+      <div class="bar-container">
+        <span class="bar-label">슬라임 B</span>
+        <div class="bar-bg">
+          <div class="bar-fill fill-slime" id="slime-1-hp-fill" style="width: 100%;"></div>
+        </div>
+        <span id="slime-1-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
       </div>
 
       <!-- Attack Cooldown Gauge -->
       <div class="bar-container">
-        <span class="bar-label">쿨다운</span>
+        <span class="bar-label">공격 쿨다운</span>
         <div class="bar-bg">
           <div class="bar-fill fill-cooldown" id="cooldown-fill" style="width: 0%;"></div>
         </div>
-        <span id="cooldown-val" style="width: 50px; text-align: right; font-family: monospace; font-size: 11px;">READY</span>
+        <span id="cooldown-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">READY</span>
       </div>
 
       <!-- Real-time Combat Notification Banner -->
       <div id="combat-banner">
-        더미 인형(나무 기둥)을 향해 들이받아 보세요!
+        슬라임에게 접근해 돌진 텔레그래프를 유도해 보세요!
       </div>
 
-      <!-- View Size & Zoom Controller -->
+      <!-- Controls & Spawner -->
       <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-          <span style="font-size: 11px; color: #38bdf8; font-weight: bold;">🔍 직교 뷰사이즈:</span>
-          <span id="view-size-text" style="font-size: 11px; color: #94a3b8; font-family: monospace;">14.4m (기본)</span>
-        </div>
         <div class="btn-row">
-          <button class="btn" onclick="updateViewSize(7.2)">7.2m</button>
           <button class="btn" onclick="updateViewSize(10.8)">10.8m</button>
-          <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4m</button>
+          <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4m (표준)</button>
           <button class="btn" onclick="updateViewSize(18.0)">18.0m</button>
-          <button class="btn" onclick="resetDummyPosition()" style="background: #334155; margin-left: auto;">🔄 더미 리셋</button>
+          <button class="btn" onclick="respawnAllSlimes()" style="background: #059669; color: #fff; margin-left: auto;">🔄 슬라임 리스폰</button>
         </div>
       </div>
     </div>
@@ -185,10 +178,10 @@
 
   <!-- Guide Box -->
   <div id="guide-box">
-    <b>💡 범프 전투 원칙 (Layer 2)</b><br>
-    • <b>정면 충돌 (빨간 뿔 90° 이내)</b>: 상호 피해 발생! 용사도 피격됨.<br>
-    • <b>측/후면 공격 (270° 영역)</b>: 일방 타격! 용사 피해 0, 적에게 큰 넉백.<br>
-    • <b>0.35s 쿨다운 & 분리 임펄스</b>: 무적 시간 없이도 연타 버그 방지!
+    <b>🧠 Layer 3 전술 공략 가이드</b><br>
+    • <b>선회 속도 제한(120°/s)</b>: 슬라임은 플레이어를 즉각 조준하지 못함 (원형 회피로 측면 선점 가능).<br>
+    • <b>텔레그래프(0.5초 경고)</b>: 붉은 궤적이 나타나면 공격 방향이 고정되므로 옆으로 빗겨 회피!<br>
+    • <b>무방비 카운터(Recovery 0.4초)</b>: 돌진 직후 슬라임이 정지할 때 측후면을 치면 <b>일방 타격 확정</b>!
   </div>
 
   <!-- Touch Joystick -->
@@ -211,7 +204,6 @@
       0.1, 1000
     );
 
-    // Standard 2.5D Orthogonal Tilt: 56.6 degrees
     const PITCH = 56.6 * (Math.PI / 180);
     const CAM_DIST = 18.0;
     const CAM_Y = Math.sin(PITCH) * CAM_DIST;
@@ -230,17 +222,11 @@
     const ambientLight = new THREE.AmbientLight(0xcfd8dc, 1.25);
     scene.add(ambientLight);
 
-    const sun = new THREE.DirectionalLight(0xfff5e6, 1.3);
+    const sun = new THREE.DirectionalLight(0xfff5e6, 1.35);
     sun.position.set(6, 14, 8);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 1024;
     sun.shadow.mapSize.height = 1024;
-    sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 30;
-    sun.shadow.camera.left = -10;
-    sun.shadow.camera.right = 10;
-    sun.shadow.camera.top = 10;
-    sun.shadow.camera.bottom = -10;
     scene.add(sun);
 
     // Arena Floor
@@ -251,7 +237,6 @@
     floor.receiveShadow = true;
     scene.add(floor);
 
-    // Arena Grid Lines (1m sub-grid)
     const gridHelper = new THREE.GridHelper(24, 24, 0x00d0e0, 0x2e3542);
     gridHelper.position.y = 0.005;
     scene.add(gridHelper);
@@ -265,12 +250,12 @@
       mesh.receiveShadow = true;
       scene.add(mesh);
     };
-    createWall(24, 1.6, 0.8, 0, 0.8, -12.4); // North
-    createWall(24, 1.6, 0.8, 0, 0.8, 12.4);  // South
-    createWall(0.8, 1.6, 24, -12.4, 0.8, 0); // West
-    createWall(0.8, 1.6, 24, 12.4, 0.8, 0);  // East
+    createWall(24, 1.6, 0.8, 0, 0.8, -12.4);
+    createWall(24, 1.6, 0.8, 0, 0.8, 12.4);
+    createWall(0.8, 1.6, 24, -12.4, 0.8, 0);
+    createWall(0.8, 1.6, 24, 12.4, 0.8, 0);
 
-    // Four Decorative Arena Pillars
+    // Pillars
     const pillarMat = new THREE.MeshLambertMaterial({ color: 0x2a303c });
     const pillarGeo = new THREE.CylinderGeometry(0.55, 0.60, 2.2, 16);
     [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([px, pz]) => {
@@ -298,7 +283,6 @@
     const heroGroup = new THREE.Group();
     scene.add(heroGroup);
 
-    // Hero Shadow
     const shadowGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.02, 16);
     const shadowMat = new THREE.MeshBasicMaterial({ color: 0x05070a, transparent: true, opacity: 0.55 });
     const heroShadow = new THREE.Mesh(shadowGeo, shadowMat);
@@ -308,7 +292,6 @@
     const heroBodyPivot = new THREE.Group();
     heroGroup.add(heroBodyPivot);
 
-    // Hero Mesh Parts
     const heroMeshes = [];
     const addHeroVoxel = (w, h, d, color, x, y, z, parent = heroBodyPivot) => {
       const mesh = createVoxel(w, h, d, color, x, y, z, parent);
@@ -316,21 +299,20 @@
       return mesh;
     };
 
-    // Body
-    addHeroVoxel(0.44, 0.38, 0.28, 0xd0bd95, 0, 0.52, 0); // Beige shirt
-    addHeroVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0); // Belt
-    addHeroVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16); // Buckle
+    // Hero Model
+    addHeroVoxel(0.44, 0.38, 0.28, 0xd0bd95, 0, 0.52, 0);
+    addHeroVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0);
+    addHeroVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16);
 
-    // Chibi Head & Silver Hair
     const headGroup = new THREE.Group();
     heroBodyPivot.add(headGroup);
-    addHeroVoxel(0.48, 0.44, 0.44, 0xfac19e, 0, 0.95, 0, headGroup); // Face
-    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, -0.13, 0.94, 0.23, headGroup); // Left Eye
-    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, 0.13, 0.94, 0.23, headGroup);  // Right Eye
-    addHeroVoxel(0.54, 0.20, 0.50, 0xc4c0c4, 0, 1.18, 0, headGroup); // Hair crown
-    addHeroVoxel(0.18, 0.14, 0.10, 0xc4c0c4, 0.02, 1.10, 0.24, headGroup); // Bangs
+    addHeroVoxel(0.48, 0.44, 0.44, 0xfac19e, 0, 0.95, 0, headGroup);
+    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, -0.13, 0.94, 0.23, headGroup);
+    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, 0.13, 0.94, 0.23, headGroup);
+    addHeroVoxel(0.54, 0.20, 0.50, 0xc4c0c4, 0, 1.18, 0, headGroup);
+    addHeroVoxel(0.18, 0.14, 0.10, 0xc4c0c4, 0.02, 1.10, 0.24, headGroup);
 
-    // Arms & Weapons
+    // Left Arm & Shield (Front Guard)
     const leftArmPivot = new THREE.Group();
     leftArmPivot.position.set(-0.25, 0.60, 0.04);
     leftArmPivot.rotation.set(-0.55, 0.35, 0.15);
@@ -338,7 +320,6 @@
     addHeroVoxel(0.10, 0.16, 0.12, 0xd0bd95, 0, -0.06, 0, leftArmPivot);
     addHeroVoxel(0.09, 0.14, 0.10, 0xfac19e, 0, -0.19, 0.02, leftArmPivot);
 
-    // Buckler Shield (Front Guard)
     const shieldGroup = new THREE.Group();
     shieldGroup.position.set(0.02, -0.16, 0.10);
     shieldGroup.rotation.set(0.40, -0.22, -0.12);
@@ -346,7 +327,7 @@
     addHeroVoxel(0.26, 0.28, 0.04, 0x5a3d28, 0, 0, 0, shieldGroup);
     addHeroVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, 0.13, 0.01, shieldGroup);
     addHeroVoxel(0.28, 0.04, 0.05, 0x8898a8, 0, -0.13, 0.01, shieldGroup);
-    addHeroVoxel(0.12, 0.12, 0.05, 0x00d8e8, 0, 0, 0.03, shieldGroup); // Shield boss
+    addHeroVoxel(0.12, 0.12, 0.05, 0x00d8e8, 0, 0, 0.03, shieldGroup);
 
     // Right Arm & Sword
     const rightArmPivot = new THREE.Group();
@@ -360,59 +341,128 @@
     swordGroup.position.set(0, -0.20, 0.08);
     swordGroup.rotation.set(0.95, 0.20, -0.25);
     rightArmPivot.add(swordGroup);
-    addHeroVoxel(0.04, 0.12, 0.04, 0x4e3324, 0, -0.04, 0, swordGroup); // Grip
-    addHeroVoxel(0.18, 0.04, 0.06, 0xf5c542, 0, 0.03, 0, swordGroup);  // Guard
-    addHeroVoxel(0.06, 0.44, 0.02, 0xd0e0f0, 0, 0.26, 0, swordGroup);  // Blade
+    addHeroVoxel(0.04, 0.12, 0.04, 0x4e3324, 0, -0.04, 0, swordGroup);
+    addHeroVoxel(0.18, 0.04, 0.06, 0xf5c542, 0, 0.03, 0, swordGroup);
+    addHeroVoxel(0.06, 0.44, 0.02, 0xd0e0f0, 0, 0.26, 0, swordGroup);
 
-    // Legs
-    const leftLeg = addHeroVoxel(0.15, 0.28, 0.16, 0x814126, -0.12, 0.14, 0);
-    const rightLeg = addHeroVoxel(0.15, 0.28, 0.16, 0x814126, 0.12, 0.14, 0);
+    addHeroVoxel(0.15, 0.28, 0.16, 0x814126, -0.12, 0.14, 0);
+    addHeroVoxel(0.15, 0.28, 0.16, 0x814126, 0.12, 0.14, 0);
 
     // ========================================================
-    // --- 3. Training Dummy Target (Layer 2 Combat Goal) ---
+    // --- 3. Tactical Slime Entity Factory & FSM ---
     // ========================================================
-    const dummyGroup = new THREE.Group();
-    dummyGroup.position.set(0, 0, -3.0);
-    scene.add(dummyGroup);
-
-    // Dummy Shadow
-    const dummyShadow = new THREE.Mesh(shadowGeo, shadowMat);
-    dummyShadow.position.y = 0.01;
-    dummyGroup.add(dummyShadow);
-
-    const dummyBodyPivot = new THREE.Group();
-    dummyGroup.add(dummyBodyPivot);
-
-    const dummyMeshes = [];
-    const addDummyVoxel = (w, h, d, color, x, y, z, parent = dummyBodyPivot) => {
-      const mesh = createVoxel(w, h, d, color, x, y, z, parent);
-      dummyMeshes.push({ mesh, originalColor: color });
-      return mesh;
+    const SlimeState = {
+      IDLE: 'IDLE',
+      CHASE: 'CHASE',
+      TELEGRAPH: 'TELEGRAPH',
+      DASH: 'DASH',
+      RECOVERY: 'RECOVERY',
+      DEAD: 'DEAD'
     };
 
-    // Robust Wooden Log Body
-    addDummyVoxel(0.58, 0.85, 0.58, 0x8b5a2b, 0, 0.52, 0);
-    addDummyVoxel(0.60, 0.08, 0.60, 0x4a2e18, 0, 0.50, 0); // Metal banding
+    const slimes = [];
 
-    // Dummy Head & Target Markers
-    addDummyVoxel(0.50, 0.46, 0.50, 0xa6703d, 0, 1.15, 0);
-    addDummyVoxel(0.10, 0.10, 0.04, 0x1e293b, -0.14, 1.18, 0.26); // Left button eye
-    addDummyVoxel(0.10, 0.10, 0.04, 0x1e293b, 0.14, 1.18, 0.26);  // Right button eye
+    function createSlime(id, startX, startZ, colorHex = 0x22c55e) {
+      const group = new THREE.Group();
+      group.position.set(startX, 0, startZ);
+      scene.add(group);
 
-    // Prominent Red Frontal Facing Horn/Spike (Indicates Frontal 90° Cone!)
-    // Points forward towards +Z!
-    const horn = addDummyVoxel(0.18, 0.18, 0.32, 0xef4444, 0, 0.90, 0.40);
+      const shadow = new THREE.Mesh(
+        new THREE.CylinderGeometry(0.36, 0.36, 0.02, 16),
+        shadowMat
+      );
+      shadow.position.y = 0.01;
+      group.add(shadow);
 
-    // Dummy Arms (T-Pose Straw training dummy)
-    addDummyVoxel(0.36, 0.14, 0.14, 0x8b5a2b, -0.44, 0.70, 0);
-    addDummyVoxel(0.36, 0.14, 0.14, 0x8b5a2b, 0.44, 0.70, 0);
+      const bodyPivot = new THREE.Group();
+      group.add(bodyPivot);
 
-    // Dummy Facing: Points towards +Z (South) by default
-    const DUMMY_FACING_X = 0.0;
-    const DUMMY_FACING_Z = 1.0;
+      const meshes = [];
+
+      // Slime Jelly Body
+      const slimeGeo = new THREE.SphereGeometry(0.38, 16, 12);
+      slimeGeo.scale(1.0, 0.8, 1.0);
+      const slimeMat = new THREE.MeshLambertMaterial({
+        color: colorHex,
+        transparent: true,
+        opacity: 0.90,
+        emissive: colorHex,
+        emissiveIntensity: 0.25
+      });
+      const slimeMesh = new THREE.Mesh(slimeGeo, slimeMat);
+      slimeMesh.position.y = 0.30;
+      slimeMesh.castShadow = true;
+      bodyPivot.add(slimeMesh);
+      meshes.push({ mesh: slimeMesh, originalColor: colorHex });
+
+      // Eyes
+      const eyeGeo = new THREE.SphereGeometry(0.08, 10, 8);
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+      const pupilMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+
+      const eyeL = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeL.position.set(-0.14, 0.36, 0.28);
+      bodyPivot.add(eyeL);
+      const pupilL = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), pupilMat);
+      pupilL.position.set(0, 0, 0.06);
+      eyeL.add(pupilL);
+
+      const eyeR = new THREE.Mesh(eyeGeo, eyeMat);
+      eyeR.position.set(0.14, 0.36, 0.28);
+      bodyPivot.add(eyeR);
+      const pupilR = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), pupilMat);
+      pupilR.position.set(0, 0, 0.06);
+      eyeR.add(pupilR);
+
+      // Ground Telegraph Warning Strip (Orange/Red Dash Lane)
+      const telegraphGeo = new THREE.PlaneGeometry(0.8, 3.2);
+      const telegraphMat = new THREE.MeshBasicMaterial({
+        color: 0xef4444,
+        transparent: true,
+        opacity: 0.6,
+        side: THREE.DoubleSide
+      });
+      const telegraphMesh = new THREE.Mesh(telegraphGeo, telegraphMat);
+      telegraphMesh.rotation.x = -Math.PI / 2;
+      telegraphMesh.position.set(0, 0.02, 1.6);
+      telegraphMesh.visible = false;
+      group.add(telegraphMesh);
+
+      const slimeData = {
+        id,
+        group,
+        bodyPivot,
+        telegraphMesh,
+        meshes,
+        hp: 30,
+        maxHp: 30,
+        state: SlimeState.IDLE,
+        timer: 0.0,
+        facingAngle: 0.0, // 0 is South (+Z)
+        lockedDashDir: new THREE.Vector2(0, 1),
+        kbX: 0,
+        kbZ: 0,
+        flashTimer: 0.0,
+        // Tunable AI constants
+        turnSpeedDeg: 120.0, // omega = 120 deg/s
+        aggroRadius: 6.5,
+        attackRange: 2.3,
+        chaseSpeed: 2.2,
+        dashSpeed: 7.5,
+        telegraphDuration: 0.5,
+        dashDuration: 0.35,
+        recoveryDuration: 0.4
+      };
+
+      slimes.push(slimeData);
+      return slimeData;
+    }
+
+    createSlime(0, -3.5, -3.5, 0x10b981);
+    createSlime(1, 3.5, -3.5, 0x059669);
 
     // ========================================================
-    // --- 4. Kinematics, Bump Math & Combat Logic ---
+    // --- 4. Kinematics, Hero Controls & Bump Combat ---
     // ========================================================
     const MAX_SPEED = 5.2;
     const ACCEL = 42.0;
@@ -423,22 +473,17 @@
     let facingX = 0, facingZ = 1;
     let hopCycle = 0;
 
-    // Combat Stats & States
     let heroHp = 100, heroMaxHp = 100;
-    let dummyHp = 100, dummyMaxHp = 100;
-    let heroCooldown = 0.0; // Base: 0.35s
+    let heroCooldown = 0.0;
     const BASE_COOLDOWN = 0.35;
 
     let heroKbX = 0, heroKbZ = 0;
-    let dummyKbX = 0, dummyKbZ = 0;
     const KB_FRICTION = 28.0;
 
     let heroFlashTimer = 0.0;
-    let dummyFlashTimer = 0.0;
     let hitstopTimer = 0.0;
     let shakeTimer = 0.0;
 
-    // Input States
     const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
     let joyActive = false, joyInputX = 0, joyInputZ = 0;
 
@@ -449,7 +494,6 @@
       if (keys.hasOwnProperty(e.key)) { keys[e.key] = false; e.preventDefault(); }
     });
 
-    // Virtual Joystick
     const joyBase = document.getElementById('joystick-base');
     const joyKnob = document.getElementById('joystick-knob');
     let touchId = null, joyOriginX = 0, joyOriginY = 0;
@@ -500,7 +544,7 @@
     window.addEventListener('touchcancel', endJoy);
 
     // ========================================================
-    // --- 5. Floating Text & Spark FX ---
+    // --- 5. Floating Text & FX ---
     // ========================================================
     const ftContainer = document.getElementById('floating-text-container');
     const combatBanner = document.getElementById('combat-banner');
@@ -511,7 +555,6 @@
       el.textContent = text;
       el.style.color = color;
 
-      // Project 3D world position to 2D screen
       const p = worldPos.clone().project(camera);
       const x = (p.x * 0.5 + 0.5) * window.innerWidth;
       const y = (-p.y * 0.5 + 0.5) * window.innerHeight;
@@ -522,7 +565,6 @@
       setTimeout(() => el.remove(), 850);
     }
 
-    // Spark Particle System
     const sparks = [];
     const sparkGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
     function spawnSparks(x, y, z, colorHex, count = 12) {
@@ -549,7 +591,7 @@
       for (let i = sparks.length - 1; i >= 0; i--) {
         const s = sparks[i];
         s.life -= dt;
-        s.vy -= 14.0 * dt; // Gravity
+        s.vy -= 14.0 * dt;
         s.mesh.position.x += s.vx * dt;
         s.mesh.position.y += s.vy * dt;
         s.mesh.position.z += s.vz * dt;
@@ -562,133 +604,259 @@
       }
     }
 
-    // ========================================================
-    // --- 6. Layer 2 Micro Bump Resolution Function ---
-    // ========================================================
-    function resolveMicroBump() {
-      const dummyX = dummyGroup.position.x;
-      const dummyZ = dummyGroup.position.z;
+    function setMeshColor(meshList, colorHex) {
+      meshList.forEach(item => item.mesh.material.color.setHex(colorHex));
+    }
+    function restoreMeshColor(meshList) {
+      meshList.forEach(item => item.mesh.material.color.setHex(item.originalColor));
+    }
 
-      const diffX = posX - dummyX;
-      const diffZ = posZ - dummyZ;
+    window.respawnAllSlimes = () => {
+      slimes.forEach((s, idx) => {
+        s.hp = s.maxHp;
+        s.state = SlimeState.IDLE;
+        s.timer = 0.0;
+        s.group.visible = true;
+        s.group.position.set(idx === 0 ? -3.5 : 3.5, 0, -3.5);
+        s.kbX = 0; s.kbZ = 0;
+      });
+      heroHp = 100;
+      combatBanner.className = '';
+      combatBanner.textContent = '슬라임이 모두 리스폰되었습니다!';
+    };
+
+    // ========================================================
+    // --- 6. Tactical AI Update & Bump Resolution ---
+    // ========================================================
+    function updateSlimeAI(s, dt) {
+      if (s.state === SlimeState.DEAD) return;
+
+      s.timer += dt;
+      const sx = s.group.position.x;
+      const sz = s.group.position.z;
+
+      const diffX = posX - sx;
+      const diffZ = posZ - sz;
       const dist = Math.hypot(diffX, diffZ);
-      const COLLISION_RADIUS = 0.85; // Sum of hero (0.40) & dummy (0.45) radii
+      const toHeroX = diffX / (dist || 0.001);
+      const toHeroZ = diffZ / (dist || 0.001);
+
+      // FSM
+      switch (s.state) {
+        case SlimeState.IDLE:
+          s.telegraphMesh.visible = false;
+          if (dist <= s.aggroRadius) {
+            s.state = SlimeState.CHASE;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.CHASE:
+          s.telegraphMesh.visible = false;
+          // 1. Turn Rate Constraint: Rotate towards player at max 120 deg/s
+          const targetAngle = Math.atan2(toHeroX, toHeroZ);
+          let diffAngle = (targetAngle - s.facingAngle + Math.PI) % (Math.PI * 2) - Math.PI;
+          const maxTurn = (s.turnSpeedDeg * Math.PI / 180) * dt;
+
+          if (Math.abs(diffAngle) <= maxTurn) {
+            s.facingAngle = targetAngle;
+          } else {
+            s.facingAngle += Math.sign(diffAngle) * maxTurn;
+          }
+
+          const moveDirX = Math.sin(s.facingAngle);
+          const moveDirZ = Math.cos(s.facingAngle);
+
+          s.group.position.x += moveDirX * s.chaseSpeed * dt;
+          s.group.position.z += moveDirZ * s.chaseSpeed * dt;
+
+          // Rhythmic hop bounce
+          const hop = Math.abs(Math.sin(s.timer * 7.0));
+          s.bodyPivot.position.y = hop * 0.16;
+          s.bodyPivot.scale.set(1.0 + hop * 0.1, 1.0 - hop * 0.15, 1.0 + hop * 0.1);
+
+          if (dist <= s.attackRange) {
+            s.state = SlimeState.TELEGRAPH;
+            s.timer = 0.0;
+            s.lockedDashDir.set(moveDirX, moveDirZ);
+          }
+          break;
+
+        case SlimeState.TELEGRAPH:
+          // 2. Lock-in: Rotation and direction are frozen! Show ground lane
+          s.telegraphMesh.visible = true;
+          const ratio = Math.min(1.0, s.timer / s.telegraphDuration);
+          s.telegraphMesh.scale.set(1.0, 1.0, ratio);
+
+          // Vibrate and squash
+          const vib = Math.sin(s.timer * 35.0) * 0.06;
+          s.bodyPivot.scale.set(1.25 + vib, 0.65, 1.25 + vib);
+          s.bodyPivot.position.y = 0;
+
+          if (s.timer >= s.telegraphDuration) {
+            s.state = SlimeState.DASH;
+            s.timer = 0.0;
+            s.telegraphMesh.visible = false;
+          }
+          break;
+
+        case SlimeState.DASH:
+          s.telegraphMesh.visible = false;
+          // 3. High-speed straight dash along locked direction
+          s.group.position.x += s.lockedDashDir.x * s.dashSpeed * dt;
+          s.group.position.z += s.lockedDashDir.y * s.dashSpeed * dt;
+
+          s.bodyPivot.scale.set(0.75, 1.35, 0.75);
+          s.bodyPivot.position.y = 0.08;
+
+          if (s.timer >= s.dashDuration) {
+            s.state = SlimeState.RECOVERY;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.RECOVERY:
+          s.telegraphMesh.visible = false;
+          // 4. Motionless & Vulnerable Counter Window!
+          s.bodyPivot.scale.set(1.4, 0.45, 1.4);
+          s.bodyPivot.position.y = 0.0;
+
+          if (s.timer >= s.recoveryDuration) {
+            s.state = SlimeState.CHASE;
+            s.timer = 0.0;
+          }
+          break;
+      }
+
+      // Slime facing yaw rotation
+      s.group.rotation.y = s.facingAngle;
+
+      // Knockback damping
+      const moveToward = (current, target, maxDelta) => {
+        if (Math.abs(target - current) <= maxDelta) return target;
+        return current + Math.sign(target - current) * maxDelta;
+      };
+      s.kbX = moveToward(s.kbX, 0, KB_FRICTION * dt);
+      s.kbZ = moveToward(s.kbZ, 0, KB_FRICTION * dt);
+      s.group.position.x += s.kbX * dt;
+      s.group.position.z += s.kbZ * dt;
+
+      // Clamp arena
+      s.group.position.x = Math.max(-11.5, Math.min(11.5, s.group.position.x));
+      s.group.position.z = Math.max(-11.5, Math.min(11.5, s.group.position.z));
+
+      // Flash feedback
+      if (s.flashTimer > 0.0) {
+        s.flashTimer -= dt;
+        setMeshColor(s.meshes, 0xffe066);
+        if (s.flashTimer <= 0.0) restoreMeshColor(s.meshes);
+      }
+    }
+
+    function checkSlimeBump(s) {
+      if (s.state === SlimeState.DEAD) return;
+
+      const sx = s.group.position.x;
+      const sz = s.group.position.z;
+      const diffX = posX - sx;
+      const diffZ = posZ - sz;
+      const dist = Math.hypot(diffX, diffZ);
+      const COLLISION_RADIUS = 0.78;
 
       if (dist < COLLISION_RADIUS) {
-        // Contact approach unit vector (from Dummy towards Hero)
         const contactX = diffX / (dist || 0.001);
         const contactZ = diffZ / (dist || 0.001);
 
-        // Angle Evaluation: cos(theta) = F_target . V_contact
-        const angleCos = DUMMY_FACING_X * contactX + DUMMY_FACING_Z * contactZ;
-        const isFrontal = angleCos >= 0.70710678; // cos(45 deg) threshold
+        // Slime current facing vector
+        const slimeFacingX = Math.sin(s.facingAngle);
+        const slimeFacingZ = Math.cos(s.facingAngle);
 
-        // Penetration resolution
+        // Angle Evaluation: cos(theta) = F_target . V_contact
+        const angleCos = slimeFacingX * contactX + slimeFacingZ * contactZ;
+        const isFrontal = angleCos >= 0.70710678;
+
+        // Separation
         const overlap = (COLLISION_RADIUS - dist) + 0.04;
         posX += contactX * (overlap * 0.5);
         posZ += contactZ * (overlap * 0.5);
-        dummyGroup.position.x -= contactX * (overlap * 0.5);
-        dummyGroup.position.z -= contactZ * (overlap * 0.5);
+        s.group.position.x -= contactX * (overlap * 0.5);
+        s.group.position.z -= contactZ * (overlap * 0.5);
 
-        // 1. Attack Cooldown Check (No-iFrame Multi-hit prevention)
+        // 1. Attack Cooldown Check (No-iFrame)
         if (heroCooldown > 0.0) {
-          // In cooldown: Rigid bounce separation ONLY, 0 damage!
           heroKbX = contactX * 3.8;
           heroKbZ = contactZ * 3.8;
-          dummyKbX = -contactX * 1.8;
-          dummyKbZ = -contactZ * 1.8;
+          s.kbX = -contactX * 1.8;
+          s.kbZ = -contactZ * 1.8;
           return;
         }
 
-        // 2. Valid Hit Execution
+        // 2. Valid Hit
         heroCooldown = BASE_COOLDOWN;
-        hitstopTimer = 0.04; // 0.04s Micro-freeze
-        shakeTimer = 0.14;   // Micro screen shake
+        hitstopTimer = 0.04;
+        shakeTimer = 0.14;
 
-        const hitPos = new THREE.Vector3(
-          dummyX + contactX * 0.45,
-          0.85,
-          dummyZ + contactZ * 0.45
-        );
+        const hitPos = new THREE.Vector3(sx + contactX * 0.4, 0.5, sz + contactZ * 0.4);
 
-        if (isFrontal) {
-          // --- Frontal Clash: Mutual Damage ---
-          const heroDmg = 6;
-          const dummyDmg = 10;
+        if (isFrontal && s.state !== SlimeState.RECOVERY) {
+          // Frontal Clash: Mutual Damage
+          const heroDmg = 8;
+          const slimeDmg = 10;
           heroHp = Math.max(0, heroHp - heroDmg);
-          dummyHp = Math.max(0, dummyHp - dummyDmg);
+          s.hp = Math.max(0, s.hp - slimeDmg);
 
-          // Equal knockback
           heroKbX = contactX * 5.2;
           heroKbZ = contactZ * 5.2;
-          dummyKbX = -contactX * 4.8;
-          dummyKbZ = -contactZ * 4.8;
+          s.kbX = -contactX * 4.8;
+          s.kbZ = -contactZ * 4.8;
 
           heroFlashTimer = 0.12;
-          dummyFlashTimer = 0.12;
+          s.flashTimer = 0.12;
 
-          spawnFloatingDamage(`💥 -${dummyDmg} CLASH!`, "#fca5a5", hitPos);
+          spawnFloatingDamage(`💥 -${slimeDmg} CLASH!`, "#fca5a5", hitPos);
           spawnFloatingDamage(`⚠️ -${heroDmg} DAMAGE`, "#ef4444", new THREE.Vector3(posX, 1.2, posZ));
           spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0xef4444, 16);
 
           combatBanner.className = 'frontal';
-          combatBanner.innerHTML = `💥 <b>정면 충돌 (Frontal Clash)!</b> 상호 피해: 용사 -${heroDmg} HP, 더미 -${dummyDmg} HP`;
+          combatBanner.innerHTML = `💥 <b>정면 격돌 (Frontal Clash)!</b> 상호 피해: 용사 -${heroDmg} HP, 슬라임 -${slimeDmg} HP`;
         } else {
-          // --- Flank/Rear Advantage: Unilateral Strike ---
-          const dummyDmg = 12; // Bonus damage
-          dummyHp = Math.max(0, dummyHp - dummyDmg);
+          // Flank/Rear Advantage (or Recovery Punish!)
+          const isRecoveryPunish = (s.state === SlimeState.RECOVERY);
+          const slimeDmg = isRecoveryPunish ? 16 : 12; // Extra counter damage!
+          s.hp = Math.max(0, s.hp - slimeDmg);
 
-          // Heavy knockback on target, minor recoil on hero
-          heroKbX = contactX * 1.4;
-          heroKbZ = contactZ * 1.4;
-          dummyKbX = -contactX * 6.8;
-          dummyKbZ = -contactZ * 6.8;
+          heroKbX = contactX * 1.2;
+          heroKbZ = contactZ * 1.2;
+          s.kbX = -contactX * 7.2;
+          s.kbZ = -contactZ * 7.2;
 
-          dummyFlashTimer = 0.14;
+          s.flashTimer = 0.14;
 
-          spawnFloatingDamage(`⚡ -${dummyDmg} ADVANTAGE!`, "#34d399", hitPos);
-          spawnFloatingDamage(`🛡️ 0 (SAFE)`, "#38bdf8", new THREE.Vector3(posX, 1.2, posZ));
-          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x38bdf8, 20);
+          const label = isRecoveryPunish ? `⚡ -${slimeDmg} RECOVERY PUNISH!` : `⚡ -${slimeDmg} ADVANTAGE!`;
+          spawnFloatingDamage(label, "#34d399", hitPos);
+          spawnFloatingDamage(`🛡️ 0 (GUARD)`, "#38bdf8", new THREE.Vector3(posX, 1.2, posZ));
+          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x38bdf8, 22);
 
           combatBanner.className = 'advantage';
-          combatBanner.innerHTML = `⚡ <b>측/후면 일방 타격 (Advantage)!</b> 용사 0피해 방어, 더미 -${dummyDmg} HP & 강한 넉백!`;
+          combatBanner.innerHTML = isRecoveryPunish 
+            ? `⚡ <b>무방비 카운터 (Punish)!</b> 용사 0피해, 슬라임 -${slimeDmg} 크리티컬!`
+            : `⚡ <b>측후면 일방 타격 (Advantage)!</b> 용사 0피해, 슬라임 -${slimeDmg} HP!`;
         }
 
-        // Loop continuous dummy HP recovery
-        if (dummyHp <= 0) {
-          dummyHp = dummyMaxHp;
+        if (s.hp <= 0) {
+          s.state = SlimeState.DEAD;
+          s.group.visible = false;
+          spawnFloatingDamage(`💀 DEFEATED!`, "#fbbf24", hitPos);
+          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x10b981, 28);
         }
       }
     }
-
-    // Flash Mesh Effect
-    function setMeshColor(meshList, colorHex) {
-      meshList.forEach(item => {
-        item.mesh.material.color.setHex(colorHex);
-      });
-    }
-    function restoreMeshColor(meshList) {
-      meshList.forEach(item => {
-        item.mesh.material.color.setHex(item.originalColor);
-      });
-    }
-
-    // Reset Dummy Position Helper
-    window.resetDummyPosition = () => {
-      dummyGroup.position.set(0, 0, -3.0);
-      dummyKbX = 0; dummyKbZ = 0;
-      dummyHp = 100;
-      combatBanner.className = '';
-      combatBanner.innerHTML = '더미 인형 위치 및 HP 리셋 완료!';
-    };
 
     // ========================================================
     // --- 7. Main Game Loop ---
     // ========================================================
     const heroHpFill = document.getElementById('hero-hp-fill');
     const heroHpVal = document.getElementById('hero-hp-val');
-    const dummyHpFill = document.getElementById('dummy-hp-fill');
-    const dummyHpVal = document.getElementById('dummy-hp-val');
     const cdFill = document.getElementById('cooldown-fill');
     const cdVal = document.getElementById('cooldown-val');
 
@@ -700,14 +868,14 @@
       const dt = Math.min((currentTime - lastTime) / 1000, 0.05);
       lastTime = currentTime;
 
-      // 0. Hitstop (Micro-freeze 0.04s)
+      // 0. Hitstop
       if (hitstopTimer > 0.0) {
         hitstopTimer -= dt;
         renderer.render(scene, camera);
         return;
       }
 
-      // 1. Attack Cooldown Update
+      // 1. Attack Cooldown
       if (heroCooldown > 0.0) {
         heroCooldown = Math.max(0, heroCooldown - dt);
         const cdPercent = (heroCooldown / BASE_COOLDOWN) * 100;
@@ -718,16 +886,10 @@
         cdVal.textContent = 'READY';
       }
 
-      // Flash feedback timers
       if (heroFlashTimer > 0.0) {
         heroFlashTimer -= dt;
         setMeshColor(heroMeshes, 0xff4444);
         if (heroFlashTimer <= 0.0) restoreMeshColor(heroMeshes);
-      }
-      if (dummyFlashTimer > 0.0) {
-        dummyFlashTimer -= dt;
-        setMeshColor(dummyMeshes, 0xffe066);
-        if (dummyFlashTimer <= 0.0) restoreMeshColor(dummyMeshes);
       }
 
       // 2. Input Processing
@@ -749,7 +911,7 @@
         targetDirZ = inputZ / Math.max(1.0, inputLen);
       }
 
-      // 3. Locomotion Kinematics
+      // 3. Hero Locomotion
       const moveToward = (current, target, maxDelta) => {
         if (Math.abs(target - current) <= maxDelta) return target;
         return current + Math.sign(target - current) * maxDelta;
@@ -765,51 +927,40 @@
         velZ = moveToward(velZ, 0, FRICTION * dt);
       }
 
-      // 4. Knockback Damping
       heroKbX = moveToward(heroKbX, 0, KB_FRICTION * dt);
       heroKbZ = moveToward(heroKbZ, 0, KB_FRICTION * dt);
-      dummyKbX = moveToward(dummyKbX, 0, KB_FRICTION * dt);
-      dummyKbZ = moveToward(dummyKbZ, 0, KB_FRICTION * dt);
 
-      // Apply velocity + knockback
       posX += (velX + heroKbX) * dt;
       posZ += (velZ + heroKbZ) * dt;
 
-      // Dummy movement by knockback
-      dummyGroup.position.x += dummyKbX * dt;
-      dummyGroup.position.z += dummyKbZ * dt;
-
-      // Arena boundary clamp
       posX = Math.max(-11.5, Math.min(11.5, posX));
       posZ = Math.max(-11.5, Math.min(11.5, posZ));
-      dummyGroup.position.x = Math.max(-11.5, Math.min(11.5, dummyGroup.position.x));
-      dummyGroup.position.z = Math.max(-11.5, Math.min(11.5, dummyGroup.position.z));
 
       heroGroup.position.set(posX, 0, posZ);
 
-      // 5. Layer 2 Micro Bump Resolution
-      resolveMicroBump();
-
-      // 6. Crossy Road Hopping & Visuals
+      // Hero Crossy Road hopping
       const speed = Math.hypot(velX, velZ);
       if (speed > 0.15) {
         hopCycle += (speed / MAX_SPEED) * (Math.PI * 4.6) * dt;
         const hopArc = Math.sin(hopCycle % Math.PI);
         heroBodyPivot.position.y = hopArc * 0.28;
         heroBodyPivot.scale.set(1.08 - hopArc * 0.16, 0.88 + hopArc * 0.30, 1.08 - hopArc * 0.16);
-
-        const targetYaw = Math.atan2(facingX, facingZ);
-        heroGroup.rotation.y = targetYaw;
+        heroGroup.rotation.y = Math.atan2(facingX, facingZ);
       } else {
         hopCycle = 0;
         heroBodyPivot.position.y = moveToward(heroBodyPivot.position.y, 0, 4.0 * dt);
         heroBodyPivot.scale.set(1.0, 1.0, 1.0);
       }
 
-      // Update Particle FX
+      // 4. Update Slime AI & Check Bumps
+      slimes.forEach(s => {
+        updateSlimeAI(s, dt);
+        checkSlimeBump(s);
+      });
+
       updateSparks(dt);
 
-      // 7. Orthogonal Camera Follow & Micro Screen Shake
+      // 5. Camera & Screen Shake
       let shakeOffsetX = 0, shakeOffsetZ = 0;
       if (shakeTimer > 0.0) {
         shakeTimer -= dt;
@@ -820,22 +971,28 @@
       camera.position.z = posZ + CAM_Z + shakeOffsetZ;
       camera.position.y = CAM_Y;
 
-      // 8. HUD Bars Update
+      // 6. HUD Updates
       heroHpFill.style.width = (heroHp / heroMaxHp * 100) + '%';
       heroHpVal.textContent = `${heroHp}/${heroMaxHp}`;
-      dummyHpFill.style.width = (dummyHp / dummyMaxHp * 100) + '%';
-      dummyHpVal.textContent = `${dummyHp}/${dummyMaxHp}`;
+
+      slimes.forEach((s, idx) => {
+        const fill = document.getElementById(`slime-${idx}-hp-fill`);
+        const val = document.getElementById(`slime-${idx}-hp-val`);
+        if (fill && val) {
+          fill.style.width = (s.hp / s.maxHp * 100) + '%';
+          val.textContent = s.hp > 0 ? `${s.hp}/${s.maxHp}` : 'DEAD';
+        }
+      });
 
       renderer.render(scene, camera);
     }
     requestAnimationFrame(animate);
 
     // ========================================================
-    // --- 8. UI Helpers & ViewSize Zoom ---
+    // --- 8. UI Helpers ---
     // ========================================================
     window.updateViewSize = (val) => {
       orthoSize = parseFloat(val);
-      document.getElementById('view-size-text').textContent = orthoSize.toFixed(1) + 'm';
       const a = window.innerWidth / window.innerHeight;
       camera.left = -orthoSize * a / 2;
       camera.right = orthoSize * a / 2;
