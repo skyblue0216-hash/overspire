@@ -304,13 +304,57 @@
     addHeroVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0);
     addHeroVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16);
 
+    // --- B. Expressive Anime Face & Layered Shaggy Silver Hair ---
     const headGroup = new THREE.Group();
     heroBodyPivot.add(headGroup);
-    addHeroVoxel(0.48, 0.44, 0.44, 0xfac19e, 0, 0.95, 0, headGroup);
-    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, -0.13, 0.94, 0.23, headGroup);
-    addHeroVoxel(0.09, 0.11, 0.03, 0x00d8e8, 0.13, 0.94, 0.23, headGroup);
-    addHeroVoxel(0.54, 0.20, 0.50, 0xc4c0c4, 0, 1.18, 0, headGroup);
-    addHeroVoxel(0.18, 0.14, 0.10, 0xc4c0c4, 0.02, 1.10, 0.24, headGroup);
+
+    // 1. Chibi Face Base (Sculpted peach skin)
+    addHeroVoxel(0.44, 0.40, 0.38, 0xfac19e, 0, 0.96, 0, headGroup);
+    // Subtle chin taper
+    addHeroVoxel(0.28, 0.06, 0.32, 0xf2b28c, 0, 0.76, 0.02, headGroup);
+
+    // 2. Big Sparkly Turquoise Eyes with Protruding Diamond Catchlights
+    // Left Eye
+    addHeroVoxel(0.09, 0.12, 0.03, 0x00b4d8, -0.13, 0.95, 0.20, headGroup);
+    addHeroVoxel(0.045, 0.045, 0.04, 0xffffff, -0.15, 0.98, 0.21, headGroup); // Top-left sparkle
+    // Right Eye
+    addHeroVoxel(0.09, 0.12, 0.03, 0x00b4d8, 0.13, 0.95, 0.20, headGroup);
+    addHeroVoxel(0.045, 0.045, 0.04, 0xffffff, 0.11, 0.98, 0.21, headGroup);  // Top-left sparkle
+
+    // Rosy Peach Blush Patches
+    addHeroVoxel(0.09, 0.045, 0.02, 0xf472b6, -0.17, 0.86, 0.20, headGroup);
+    addHeroVoxel(0.09, 0.045, 0.02, 0xf472b6, 0.17, 0.86, 0.20, headGroup);
+
+    // 3. Layered Shaggy Silver Hair (Volume, Sidelocks, Flowing Back & Anime Spikes)
+    const hairBase = 0xc8ccd4;      // Main silver
+    const hairLight = 0xf1f5f9;     // Top highlight tufts
+    const hairMid = 0xa3aab8;       // Mid volume shadow
+    const hairDark = 0x6b7280;      // Under-collar deep shadow
+
+    // Crown Main Volume Dome (Stepped layered dome)
+    addHeroVoxel(0.50, 0.18, 0.46, hairBase, 0, 1.15, -0.01, headGroup);
+    addHeroVoxel(0.38, 0.12, 0.36, hairLight, 0.01, 1.24, -0.03, headGroup);
+
+    // Asymmetric Front Bangs Clumps
+    addHeroVoxel(0.14, 0.20, 0.09, hairLight, 0.02, 1.08, 0.22, headGroup);  // Center point bang
+    addHeroVoxel(0.13, 0.24, 0.08, hairBase, -0.16, 1.05, 0.21, headGroup);  // Left sweeping fringe
+    addHeroVoxel(0.13, 0.22, 0.08, hairBase, 0.17, 1.06, 0.21, headGroup);   // Right sweeping fringe
+
+    // Side Hair Clumps (Sidelocks framing the face)
+    addHeroVoxel(0.09, 0.36, 0.24, hairMid, -0.25, 0.97, 0.03, headGroup);
+    addHeroVoxel(0.09, 0.36, 0.24, hairMid, 0.25, 0.97, 0.03, headGroup);
+
+    // Back Hair Flowing Down to Collar
+    addHeroVoxel(0.46, 0.36, 0.12, hairMid, 0, 0.96, -0.22, headGroup);
+    addHeroVoxel(0.34, 0.16, 0.08, hairDark, 0, 0.82, -0.22, headGroup); // Neck drape
+
+    // Iconic Anime Spiky Tufts & Ahoge (Bouncy playful silhouette!)
+    const tuft1 = addHeroVoxel(0.14, 0.15, 0.14, hairLight, -0.04, 1.33, 0.03, headGroup);
+    tuft1.rotation.z = 0.18; tuft1.rotation.x = -0.12;
+    const tuft2 = addHeroVoxel(0.12, 0.13, 0.12, hairBase, 0.10, 1.30, -0.07, headGroup);
+    tuft2.rotation.z = -0.22;
+    const tuft3 = addHeroVoxel(0.11, 0.12, 0.11, hairMid, -0.12, 1.23, -0.18, headGroup);
+    tuft3.rotation.x = -0.25;
 
     // Left Arm & Shield (Front Guard)
     const leftArmPivot = new THREE.Group();
