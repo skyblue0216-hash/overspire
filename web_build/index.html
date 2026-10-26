@@ -167,10 +167,11 @@
       <!-- Controls & Spawner -->
       <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
         <div class="btn-row">
-          <button class="btn" onclick="updateViewSize(10.8)">10.8m</button>
-          <button class="btn active" id="btn-14" onclick="updateViewSize(14.4)">14.4m (표준)</button>
-          <button class="btn" onclick="updateViewSize(18.0)">18.0m</button>
-          <button class="btn" onclick="respawnAllSlimes()" style="background: #059669; color: #fff; margin-left: auto;">🔄 슬라임 리스폰</button>
+          <button class="btn" onclick="updateViewSize(14.4)">14.4m (1x)</button>
+          <button class="btn" onclick="updateViewSize(21.6)">21.6m (1.5x)</button>
+          <button class="btn active" id="btn-29" onclick="updateViewSize(28.8)">28.8m (2x 표준)</button>
+          <button class="btn" onclick="updateViewSize(36.0)">36.0m</button>
+          <button class="btn" onclick="respawnAllSlimes()" style="background: #059669; color: #fff; margin-left: auto;">🔄 포링 리스폰</button>
         </div>
       </div>
     </div>
@@ -197,7 +198,7 @@
     scene.background = new THREE.Color(0x0e1118);
 
     const aspect = window.innerWidth / window.innerHeight;
-    let orthoSize = 14.4;
+    let orthoSize = 28.8; // 2x Zoom-Out Default
     const camera = new THREE.OrthographicCamera(
       -orthoSize * aspect / 2, orthoSize * aspect / 2,
       orthoSize / 2, -orthoSize / 2,
@@ -205,7 +206,7 @@
     );
 
     const PITCH = 56.6 * (Math.PI / 180);
-    const CAM_DIST = 18.0;
+    const CAM_DIST = 26.0;
     const CAM_Y = Math.sin(PITCH) * CAM_DIST;
     const CAM_Z = Math.cos(PITCH) * CAM_DIST;
     camera.position.set(0, CAM_Y, CAM_Z);
@@ -223,10 +224,16 @@
     scene.add(ambientLight);
 
     const sun = new THREE.DirectionalLight(0xfff5e6, 1.35);
-    sun.position.set(6, 14, 8);
+    sun.position.set(10, 20, 12);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 1024;
     sun.shadow.mapSize.height = 1024;
+    sun.shadow.camera.near = 0.5;
+    sun.shadow.camera.far = 60;
+    sun.shadow.camera.left = -22;
+    sun.shadow.camera.right = 22;
+    sun.shadow.camera.top = 22;
+    sun.shadow.camera.bottom = -22;
     scene.add(sun);
 
     // Arena Floor
