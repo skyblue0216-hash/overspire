@@ -22,6 +22,7 @@ var _anim_time: float = 0.0
 
 @onready var visual_pivot: Node3D = $VisualPivot
 @onready var body_mesh: MeshInstance3D = $VisualPivot/BodyMesh
+@onready var top_tip: MeshInstance3D = $VisualPivot/TopTip
 @onready var telegraph_indicator: MeshInstance3D = $VisualPivot/TelegraphIndicator
 
 func _ready() -> void:
@@ -74,19 +75,30 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 
 	# State-driven Squash & Stretch
 	match cmd.state:
+		ArchetypeBrain.AIState.IDLE:
+			# Cute gentle jelly breathing
+			var breath := sin(_anim_time * 3.5) * 0.05
+			visual_pivot.scale = Vector3(1.0 + breath, 1.0 - breath * 1.5, 1.0 + breath)
+			if top_tip:
+				top_tip.rotation.z = sin(_anim_time * 3.5) * 0.12
+
 		ArchetypeBrain.AIState.CHASE:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Rhythmic slime bounce hop
+			# Rhythmic cute slime hopping with jelly jiggle
 			var hop := abs(sin(_anim_time * 8.0))
-			visual_pivot.position.y = hop * 0.15
-			visual_pivot.scale = Vector3(1.0 + hop * 0.1, 1.0 - hop * 0.15, 1.0 + hop * 0.1)
+			visual_pivot.position.y = hop * 0.18
+			visual_pivot.scale = Vector3(1.08 - hop * 0.15, 0.90 + hop * 0.28, 1.08 - hop * 0.15)
+			if top_tip:
+				top_tip.rotation.z = sin(_anim_time * 8.0) * 0.25
 
 		ArchetypeBrain.AIState.TELEGRAPH:
-			# Squash wide, vibrate, and show warning ground telegraph
-			var vibrate := sin(_anim_time * 30.0) * 0.05
+			# Cheeks puffed, vibrating angrily but adorably!
+			var vibrate := sin(_anim_time * 35.0) * 0.06
 			visual_pivot.position.y = 0.0
-			visual_pivot.scale = Vector3(1.25 + vibrate, 0.65, 1.25 + vibrate)
+			visual_pivot.scale = Vector3(1.28 + vibrate, 0.65, 1.28 + vibrate)
+			if top_tip:
+				top_tip.rotation.z = vibrate * 2.0
 			if telegraph_indicator:
 				telegraph_indicator.visible = true
 				telegraph_indicator.scale.z = lerpf(0.2, 1.0, cmd.telegraph_ratio)
@@ -94,16 +106,20 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 		ArchetypeBrain.AIState.DASH:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Aerodynamic forward stretch
-			visual_pivot.scale = Vector3(0.75, 1.35, 0.75)
+			# Aerodynamic forward teardrop stretch
+			visual_pivot.scale = Vector3(0.72, 1.35, 0.72)
 			visual_pivot.position.y = 0.08
+			if top_tip:
+				top_tip.rotation.x = -0.35 # Blown backward by high speed
 
 		ArchetypeBrain.AIState.RECOVERY:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Motionless flattened puddle
+			# Dizzy cute flattened puddle
 			visual_pivot.position.y = 0.0
-			visual_pivot.scale = Vector3(1.35, 0.45, 1.35)
+			visual_pivot.scale = Vector3(1.42, 0.40, 1.42)
+			if top_tip:
+				top_tip.rotation.z = sin(_anim_time * 12.0) * 0.35
 
 func apply_bump_impact(damage: int, knockback: Vector3, is_frontal: bool) -> void:
 	stat_hp = maxi(0, stat_hp - damage)
