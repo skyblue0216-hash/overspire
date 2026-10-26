@@ -134,18 +134,18 @@
 
       <!-- Slime 1 Health Bar -->
       <div class="bar-container">
-        <span class="bar-label">슬라임 A</span>
+        <span class="bar-label">포링 A</span>
         <div class="bar-bg">
-          <div class="bar-fill fill-slime" id="slime-0-hp-fill" style="width: 100%;"></div>
+          <div class="bar-fill fill-slime" id="slime-0-hp-fill" style="width: 100%; background: linear-gradient(90deg, #f43f5e, #fb7185);"></div>
         </div>
         <span id="slime-0-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
       </div>
 
       <!-- Slime 2 Health Bar -->
       <div class="bar-container">
-        <span class="bar-label">슬라임 B</span>
+        <span class="bar-label">포링 B</span>
         <div class="bar-bg">
-          <div class="bar-fill fill-slime" id="slime-1-hp-fill" style="width: 100%;"></div>
+          <div class="bar-fill fill-slime" id="slime-1-hp-fill" style="width: 100%; background: linear-gradient(90deg, #ec4899, #f472b6);"></div>
         </div>
         <span id="slime-1-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
       </div>
@@ -379,87 +379,74 @@
 
       const meshes = [];
 
-      // Slime Jelly Body - Plump Pear/Teardrop Shape
-      const slimeGeo = new THREE.SphereGeometry(0.42, 20, 16);
-      slimeGeo.scale(1.08, 0.78, 1.08);
-      const slimeMat = new THREE.MeshLambertMaterial({
+      // --- Ragnarok Poring Jelly Body (Plump, Smooth, Shiny Pink Mochi) ---
+      const slimeGeo = new THREE.SphereGeometry(0.46, 24, 20);
+      slimeGeo.scale(1.10, 0.90, 1.10);
+      const slimeMat = new THREE.MeshPhongMaterial({
         color: colorHex,
+        emissive: 0x991b3b,
+        emissiveIntensity: 0.18,
+        specular: 0xffffff,
+        shininess: 45,
         transparent: true,
-        opacity: 0.92,
-        emissive: colorHex,
-        emissiveIntensity: 0.28
+        opacity: 0.95
       });
       const slimeMesh = new THREE.Mesh(slimeGeo, slimeMat);
-      slimeMesh.position.y = 0.28;
+      slimeMesh.position.y = 0.32;
       slimeMesh.castShadow = true;
       bodyPivot.add(slimeMesh);
       meshes.push({ mesh: slimeMesh, originalColor: colorHex });
 
-      // Cute Bouncy Top Tip (Teardrop Swirl)
-      const tipGeo = new THREE.ConeGeometry(0.12, 0.24, 12);
-      tipGeo.translate(0, 0.12, 0);
-      const tipMat = new THREE.MeshLambertMaterial({
-        color: colorHex,
-        transparent: true,
-        opacity: 0.92,
-        emissive: colorHex,
-        emissiveIntensity: 0.28
-      });
-      const tipMesh = new THREE.Mesh(tipGeo, tipMat);
-      tipMesh.position.set(0, 0.52, 0);
-      bodyPivot.add(tipMesh);
-      meshes.push({ mesh: tipMesh, originalColor: colorHex });
-
-      // --- Big Sparkly Chibi Eyes ---
-      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x111827 });
+      // --- Iconic Poring Face: Big Shiny Oval Eyes & Cute Open Smile ---
+      const eyeMat = new THREE.MeshBasicMaterial({ color: 0x0f0b12 });
       const glintMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-      const makeEye = (x, y, z) => {
+      const makePoringEye = (x, y, z) => {
         const eyeGroup = new THREE.Group();
         eyeGroup.position.set(x, y, z);
         bodyPivot.add(eyeGroup);
 
-        // Big Oval Black Eye
-        const baseEyeGeo = new THREE.SphereGeometry(0.09, 12, 10);
+        // Smooth Vertical Pill Eye
+        const baseEyeGeo = new THREE.SphereGeometry(0.08, 14, 12);
         baseEyeGeo.scale(0.85, 1.25, 0.45);
         const baseEye = new THREE.Mesh(baseEyeGeo, eyeMat);
         eyeGroup.add(baseEye);
 
-        // Primary Large Sparkle Glint (Top-Left)
-        const glint1 = new THREE.Mesh(new THREE.SphereGeometry(0.038, 8, 8), glintMat);
-        glint1.position.set(-0.025, 0.04, 0.035);
+        // Catchlight Glint (Top-Left)
+        const glint1 = new THREE.Mesh(new THREE.SphereGeometry(0.032, 8, 8), glintMat);
+        glint1.position.set(-0.02, 0.04, 0.035);
         eyeGroup.add(glint1);
 
-        // Secondary Cute Small Glint (Bottom-Right)
-        const glint2 = new THREE.Mesh(new THREE.SphereGeometry(0.020, 8, 8), glintMat);
-        glint2.position.set(0.030, -0.045, 0.035);
+        // Sub Catchlight (Bottom-Right)
+        const glint2 = new THREE.Mesh(new THREE.SphereGeometry(0.016, 8, 8), glintMat);
+        glint2.position.set(0.022, -0.035, 0.035);
         eyeGroup.add(glint2);
 
         return eyeGroup;
       };
 
-      const eyeL = makeEye(-0.15, 0.33, 0.34);
-      const eyeR = makeEye(0.15, 0.33, 0.34);
+      const eyeL = makePoringEye(-0.16, 0.35, 0.38);
+      const eyeR = makePoringEye(0.16, 0.35, 0.38);
 
-      // --- Kawaii Rosy Cheeks (Blush) ---
+      // Cute Rosy Peach Blush Cheeks
       const blushMat = new THREE.MeshBasicMaterial({
-        color: 0xfb7185,
+        color: 0xff99aa,
         transparent: true,
-        opacity: 0.82
+        opacity: 0.75
       });
       const blushGeo = new THREE.BoxGeometry(0.10, 0.045, 0.02);
       const blushL = new THREE.Mesh(blushGeo, blushMat);
-      blushL.position.set(-0.25, 0.24, 0.32);
+      blushL.position.set(-0.27, 0.26, 0.35);
       bodyPivot.add(blushL);
       const blushR = new THREE.Mesh(blushGeo, blushMat);
-      blushR.position.set(0.25, 0.24, 0.32);
+      blushR.position.set(0.27, 0.26, 0.35);
       bodyPivot.add(blushR);
 
-      // Tiny Cute Mouth
-      const mouthGeo = new THREE.BoxGeometry(0.05, 0.03, 0.02);
-      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x064e3b });
+      // Innocent Open Happy Smile
+      const mouthGeo = new THREE.BoxGeometry(0.07, 0.045, 0.02);
+      const mouthMat = new THREE.MeshBasicMaterial({ color: 0x991b1b });
       const mouth = new THREE.Mesh(mouthGeo, mouthMat);
-      mouth.position.set(0, 0.25, 0.40);
+      mouth.position.set(0, 0.26, 0.44);
       bodyPivot.add(mouth);
 
       // Dizzy Stars Container (Shown during RECOVERY state)
@@ -477,12 +464,12 @@
         dizzyStarsGroup.add(star);
       }
 
-      // Ground Telegraph Warning Strip (Orange/Red Dash Lane)
-      const telegraphGeo = new THREE.PlaneGeometry(0.8, 3.2);
+      // Ground Telegraph Warning Strip (Cute Pink/Red Dash Lane)
+      const telegraphGeo = new THREE.PlaneGeometry(0.85, 3.2);
       const telegraphMat = new THREE.MeshBasicMaterial({
-        color: 0xef4444,
+        color: 0xff2555,
         transparent: true,
-        opacity: 0.6,
+        opacity: 0.55,
         side: THREE.DoubleSide
       });
       const telegraphMesh = new THREE.Mesh(telegraphGeo, telegraphMat);
@@ -495,7 +482,6 @@
         id,
         group,
         bodyPivot,
-        tipMesh,
         dizzyStarsGroup,
         telegraphMesh,
         meshes,
@@ -523,8 +509,8 @@
       return slimeData;
     }
 
-    createSlime(0, -3.5, -3.5, 0x10b981);
-    createSlime(1, 3.5, -3.5, 0x059669);
+    createSlime(0, -3.5, -3.5, 0xff6f8f); // Strawberry Milk Pink Poring A
+    createSlime(1, 3.5, -3.5, 0xff5277);  // Cherry Pink Poring B
 
     // ========================================================
     // --- 4. Kinematics, Hero Controls & Bump Combat ---
@@ -743,11 +729,10 @@
           s.group.position.x += moveDirX * s.chaseSpeed * dt;
           s.group.position.z += moveDirZ * s.chaseSpeed * dt;
 
-          // Rhythmic bouncy jelly hop with sway tip
-          const hop = Math.abs(Math.sin(s.timer * 8.0));
-          s.bodyPivot.position.y = hop * 0.20;
-          s.bodyPivot.scale.set(1.10 - hop * 0.16, 0.88 + hop * 0.32, 1.10 - hop * 0.16);
-          if (s.tipMesh) s.tipMesh.rotation.z = Math.sin(s.timer * 8.0) * 0.28;
+          // Ragnarok Poring signature "Boing! Boing!" hop
+          const hop = Math.abs(Math.sin(s.timer * 7.5));
+          s.bodyPivot.position.y = hop * 0.28;
+          s.bodyPivot.scale.set(1.15 - hop * 0.22, 0.85 + hop * 0.40, 1.15 - hop * 0.22);
 
           if (dist <= s.attackRange) {
             s.state = SlimeState.TELEGRAPH;
@@ -758,15 +743,14 @@
 
         case SlimeState.TELEGRAPH:
           s.dizzyStarsGroup.visible = false;
-          // 2. Lock-in: Cheeks puffed, vibrating adorably! Show ground lane
+          // 2. Lock-in: Puffs up like a pink balloon before launch!
           s.telegraphMesh.visible = true;
           const ratio = Math.min(1.0, s.timer / s.telegraphDuration);
           s.telegraphMesh.scale.set(1.0, 1.0, ratio);
 
-          const vib = Math.sin(s.timer * 40.0) * 0.06;
-          s.bodyPivot.scale.set(1.30 + vib, 0.62, 1.30 + vib);
+          const vib = Math.sin(s.timer * 36.0) * 0.05;
+          s.bodyPivot.scale.set(1.30 + vib, 0.65, 1.30 + vib);
           s.bodyPivot.position.y = 0;
-          if (s.tipMesh) s.tipMesh.rotation.z = vib * 2.5;
 
           if (s.timer >= s.telegraphDuration) {
             s.state = SlimeState.DASH;
@@ -782,9 +766,8 @@
           s.group.position.x += s.lockedDashDir.x * s.dashSpeed * dt;
           s.group.position.z += s.lockedDashDir.y * s.dashSpeed * dt;
 
-          s.bodyPivot.scale.set(0.70, 1.38, 0.70);
-          s.bodyPivot.position.y = 0.08;
-          if (s.tipMesh) s.tipMesh.rotation.x = -0.45; // Blown backward
+          s.bodyPivot.scale.set(0.75, 1.32, 0.75);
+          s.bodyPivot.position.y = 0.10;
 
           if (s.timer >= s.dashDuration) {
             s.state = SlimeState.RECOVERY;
@@ -794,13 +777,12 @@
 
         case SlimeState.RECOVERY:
           s.telegraphMesh.visible = false;
-          // 4. Dizzy cute flattened puddle with spinning stars (Counter Window!)
+          // 4. Dizzy cute flattened mochi puddle with spinning stars
           s.dizzyStarsGroup.visible = true;
           s.dizzyStarsGroup.rotation.y += dt * 4.5;
 
-          s.bodyPivot.scale.set(1.45, 0.38, 1.45);
+          s.bodyPivot.scale.set(1.50, 0.36, 1.50);
           s.bodyPivot.position.y = 0.0;
-          if (s.tipMesh) s.tipMesh.rotation.z = Math.sin(s.timer * 12.0) * 0.35;
 
           if (s.timer >= s.recoveryDuration) {
             s.state = SlimeState.CHASE;

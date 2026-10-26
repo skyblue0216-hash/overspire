@@ -1,8 +1,8 @@
 class_name Slime
 extends CharacterBody3D
 
-## Layer 3 Tactical Loop: Slime Entity Controller
-## Manages FSM state execution, visual squash/stretch, telegraphing, and bump impact handling
+## Layer 3 Tactical Loop: Poring-style Slime Entity Controller
+## Manages Ragnarok Poring-style squishy hop kinematics, telegraph, and bump handling
 
 signal slime_died(slime: Slime)
 
@@ -22,7 +22,6 @@ var _anim_time: float = 0.0
 
 @onready var visual_pivot: Node3D = $VisualPivot
 @onready var body_mesh: MeshInstance3D = $VisualPivot/BodyMesh
-@onready var top_tip: MeshInstance3D = $VisualPivot/TopTip
 @onready var telegraph_indicator: MeshInstance3D = $VisualPivot/TelegraphIndicator
 
 func _ready() -> void:
@@ -56,7 +55,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	global_position.y = 0.0
 
-	# 4. Update Visual Facing & Squash/Stretch
+	# 4. Update Visual Facing & Poring Squash & Stretch
 	_update_visuals(cmd, delta)
 
 	# 5. Flash Timer
@@ -73,32 +72,28 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 	var facing_angle := atan2(cmd.facing_direction.x, cmd.facing_direction.y)
 	visual_pivot.rotation.y = lerp_angle(visual_pivot.rotation.y, facing_angle, 16.0 * delta)
 
-	# State-driven Squash & Stretch
+	# Poring State-driven Squash & Stretch
 	match cmd.state:
 		ArchetypeBrain.AIState.IDLE:
-			# Cute gentle jelly breathing
-			var breath := sin(_anim_time * 3.5) * 0.05
-			visual_pivot.scale = Vector3(1.0 + breath, 1.0 - breath * 1.5, 1.0 + breath)
-			if top_tip:
-				top_tip.rotation.z = sin(_anim_time * 3.5) * 0.12
+			# Plump mochi breathing
+			var breath := sin(_anim_time * 3.5) * 0.06
+			visual_pivot.scale = Vector3(1.0 + breath, 1.0 - breath * 1.6, 1.0 + breath)
+			visual_pivot.position.y = 0.0
 
 		ArchetypeBrain.AIState.CHASE:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Rhythmic cute slime hopping with jelly jiggle
-			var hop := abs(sin(_anim_time * 8.0))
-			visual_pivot.position.y = hop * 0.18
-			visual_pivot.scale = Vector3(1.08 - hop * 0.15, 0.90 + hop * 0.28, 1.08 - hop * 0.15)
-			if top_tip:
-				top_tip.rotation.z = sin(_anim_time * 8.0) * 0.25
+			# Ragnarok Poring signature "Boing! Boing!" hop
+			var hop := abs(sin(_anim_time * 7.5))
+			visual_pivot.position.y = hop * 0.28
+			# Stretch tall at peak, squash wide on ground impact
+			visual_pivot.scale = Vector3(1.12 - hop * 0.22, 0.88 + hop * 0.38, 1.12 - hop * 0.22)
 
 		ArchetypeBrain.AIState.TELEGRAPH:
-			# Cheeks puffed, vibrating angrily but adorably!
-			var vibrate := sin(_anim_time * 35.0) * 0.06
+			# Puffs up like a cute pink balloon before launching
+			var vibrate := sin(_anim_time * 36.0) * 0.05
 			visual_pivot.position.y = 0.0
-			visual_pivot.scale = Vector3(1.28 + vibrate, 0.65, 1.28 + vibrate)
-			if top_tip:
-				top_tip.rotation.z = vibrate * 2.0
+			visual_pivot.scale = Vector3(1.30 + vibrate, 0.65, 1.30 + vibrate)
 			if telegraph_indicator:
 				telegraph_indicator.visible = true
 				telegraph_indicator.scale.z = lerpf(0.2, 1.0, cmd.telegraph_ratio)
@@ -106,20 +101,16 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 		ArchetypeBrain.AIState.DASH:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Aerodynamic forward teardrop stretch
-			visual_pivot.scale = Vector3(0.72, 1.35, 0.72)
-			visual_pivot.position.y = 0.08
-			if top_tip:
-				top_tip.rotation.x = -0.35 # Blown backward by high speed
+			# Aerodynamic horizontal torpedo mochi stretch
+			visual_pivot.scale = Vector3(0.78, 1.32, 0.78)
+			visual_pivot.position.y = 0.10
 
 		ArchetypeBrain.AIState.RECOVERY:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Dizzy cute flattened puddle
+			# Completely flattened delicious pink mochi puddle on floor
 			visual_pivot.position.y = 0.0
-			visual_pivot.scale = Vector3(1.42, 0.40, 1.42)
-			if top_tip:
-				top_tip.rotation.z = sin(_anim_time * 12.0) * 0.35
+			visual_pivot.scale = Vector3(1.50, 0.36, 1.50)
 
 func apply_bump_impact(damage: int, knockback: Vector3, is_frontal: bool) -> void:
 	stat_hp = maxi(0, stat_hp - damage)
@@ -129,7 +120,7 @@ func apply_bump_impact(damage: int, knockback: Vector3, is_frontal: bool) -> voi
 	flash_timer = 0.10
 	if body_mesh:
 		var flash_mat := StandardMaterial3D.new()
-		flash_mat.albedo_color = Color(1.0, 0.3, 0.3) if is_frontal else Color(1.0, 0.95, 0.2)
+		flash_mat.albedo_color = Color(1.0, 0.9, 0.3) if not is_frontal else Color(1.0, 0.3, 0.3)
 		flash_mat.shading_mode = BaseMaterial3D.SHADING_MODE_UNSHADED
 		body_mesh.material_override = flash_mat
 
