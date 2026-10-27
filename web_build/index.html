@@ -1,193 +1,617 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-  <meta charset="utf-8">
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Overspire - Layer 3: Tactical Slime Combat</title>
+  <title>Overspire - Layer 4: Session Loop (Dungeon Exploration & Zero-Risk Pause Looting)</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; -webkit-user-select: none; }
-    body, html { width: 100%; height: 100%; overflow: hidden; background: #0c0e14; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    
-    #canvas-container { 
-      width: 100%; height: 100%; display: flex; align-items: center; justify-content: center;
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
     }
-    canvas { display: block; width: 100%; height: 100%; }
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: #0b0e14;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #e2e8f0;
+    }
+    #canvas-container {
+      width: 100%;
+      height: 100%;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 1;
+    }
 
-    /* HUD */
-    #hud {
-      position: absolute; top: 10px; left: 10px;
-      max-width: 420px; width: calc(100vw - 20px);
-      background: rgba(12, 16, 24, 0.92);
-      border: 1px solid rgba(0, 208, 224, 0.45);
-      border-radius: 8px;
-      padding: 10px 14px;
-      color: #eee;
-      font-size: 12px;
-      line-height: 1.4;
-      box-shadow: 0 4px 20px rgba(0,0,0,0.7);
+    /* HUD Layout */
+    #hud-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
       z-index: 10;
-      backdrop-filter: blur(6px);
+      pointer-events: none;
     }
-    #hud h1 { font-size: 14px; color: #00e5ff; margin-bottom: 4px; display: flex; align-items: center; gap: 6px; }
-    
+
+    .interactive {
+      pointer-events: auto;
+    }
+
+    /* Top Stats Card */
+    #top-bar {
+      position: absolute;
+      top: 10px;
+      left: 12px;
+      right: 12px;
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .card {
+      background: rgba(15, 23, 42, 0.88);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 12px;
+      padding: 10px 14px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+    }
+
+    .hud-title-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 6px;
+    }
+    .hud-badge {
+      font-size: 11px;
+      font-weight: 700;
+      padding: 2px 7px;
+      border-radius: 4px;
+      background: #3b82f6;
+      color: #fff;
+    }
+    .key-badge {
+      background: #d97706;
+      color: #fff;
+      font-weight: 700;
+      font-size: 11px;
+      padding: 2px 8px;
+      border-radius: 4px;
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+    .key-badge.acquired {
+      background: #10b981;
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.6);
+    }
+
     /* Bars */
-    .bar-container { display: flex; align-items: center; gap: 8px; margin: 3px 0; }
-    .bar-label { width: 72px; font-size: 11px; font-weight: 600; color: #cbd5e1; }
-    .bar-bg { flex: 1; height: 10px; background: #1e293b; border-radius: 5px; overflow: hidden; border: 1px solid #334155; }
-    .bar-fill { height: 100%; transition: width 0.1s ease-out; }
-    .fill-hero { background: linear-gradient(90deg, #10b981, #34d399); }
-    .fill-slime { background: linear-gradient(90deg, #22c55e, #86efac); }
-    .fill-cooldown { background: linear-gradient(90deg, #0284c7, #38bdf8); }
+    .bar-container {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 4px;
+      font-size: 12px;
+    }
+    .bar-label {
+      width: 58px;
+      font-weight: 600;
+      color: #94a3b8;
+    }
+    .bar-bg {
+      flex: 1;
+      height: 9px;
+      background: rgba(255, 255, 255, 0.08);
+      border-radius: 5px;
+      overflow: hidden;
+      min-width: 90px;
+    }
+    .bar-fill {
+      height: 100%;
+      transition: width 0.1s ease-out;
+    }
+    .fill-hero-hp { background: linear-gradient(90deg, #10b981, #34d399); }
+    .fill-cooldown { background: linear-gradient(90deg, #3b82f6, #60a5fa); }
+
+    /* Stats Chips */
+    .stats-row {
+      display: flex;
+      gap: 8px;
+      margin-top: 6px;
+      font-size: 11px;
+      color: #cbd5e1;
+    }
+    .stat-chip {
+      background: rgba(255, 255, 255, 0.06);
+      padding: 2px 6px;
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    /* Minimap Widget */
+    #minimap-card {
+      width: 140px;
+      text-align: center;
+    }
+    #minimap-canvas {
+      width: 110px;
+      height: 110px;
+      margin: 4px auto 0 auto;
+      display: block;
+      background: #090d16;
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
 
     /* Combat Notification Banner */
     #combat-banner {
-      margin-top: 6px; padding: 6px 10px; border-radius: 6px;
-      font-weight: bold; font-size: 11px; text-align: center;
-      background: rgba(30, 41, 59, 0.85); border: 1px solid #475569;
-      color: #94a3b8; transition: all 0.2s;
+      position: absolute;
+      top: 148px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(15, 23, 42, 0.90);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 20px;
+      padding: 6px 16px;
+      font-size: 13px;
+      font-weight: 600;
+      text-align: center;
+      white-space: nowrap;
+      pointer-events: none;
+      transition: all 0.2s ease;
+      color: #cbd5e1;
+      box-shadow: 0 4px 14px rgba(0,0,0,0.4);
     }
     #combat-banner.frontal {
-      background: rgba(220, 38, 38, 0.3); border-color: #ef4444; color: #fca5a5;
+      border-color: #ef4444;
+      background: rgba(153, 27, 27, 0.92);
+      color: #fee2e2;
     }
     #combat-banner.advantage {
-      background: rgba(16, 185, 129, 0.3); border-color: #10b981; color: #6ee7b7;
+      border-color: #10b981;
+      background: rgba(6, 78, 59, 0.92);
+      color: #d1fae5;
+    }
+    #combat-banner.warning {
+      border-color: #f59e0b;
+      background: rgba(120, 53, 15, 0.92);
+      color: #fef3c7;
     }
 
-    /* Buttons */
-    .btn-row { margin-top: 6px; display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
-    .btn {
-      padding: 4px 8px; border-radius: 4px; background: #1e293b; color: #cbd5e1;
-      border: 1px solid #475569; font-size: 11px; cursor: pointer; font-weight: 500;
+    /* Guide Box */
+    #guide-box {
+      position: absolute;
+      bottom: 14px;
+      left: 14px;
+      max-width: 380px;
+      background: rgba(15, 23, 42, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 11.5px;
+      line-height: 1.5;
+      color: #94a3b8;
     }
-    .btn.active {
-      background: #0284c7; color: #fff; border-color: #38bdf8; font-weight: bold;
-    }
+    #guide-box b { color: #f1f5f9; }
 
-    /* Floating Combat Text Container */
-    #floating-text-container {
-      position: absolute; top: 0; left: 0; width: 100%; height: 100%;
-      pointer-events: none; overflow: hidden; z-index: 15;
-    }
-    .floating-dmg {
-      position: absolute; font-weight: 900; font-family: monospace;
-      text-shadow: 0 2px 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,0,0,0.9);
+    /* Floating Dynamic Virtual Joystick */
+    #joystick-base {
+      position: absolute;
+      width: 130px;
+      height: 130px;
+      border-radius: 50%;
+      background: rgba(15, 23, 42, 0.45);
+      border: 2px solid rgba(0, 229, 255, 0.55);
       transform: translate(-50%, -50%);
       pointer-events: none;
-      animation: floatUp 0.8s ease-out forwards;
-    }
-    @keyframes floatUp {
-      0% { opacity: 0; transform: translate(-50%, 0) scale(0.6); }
-      15% { opacity: 1; transform: translate(-50%, -15px) scale(1.3); }
-      40% { transform: translate(-50%, -28px) scale(1.0); }
-      100% { opacity: 0; transform: translate(-50%, -55px) scale(0.85); }
-    }
-
-    /* Guide overlay */
-    #guide-box {
-      position: absolute; bottom: 12px; right: 12px;
-      max-width: 340px; background: rgba(12, 16, 24, 0.92);
-      border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 6px;
-      padding: 8px 12px; font-size: 11px; color: #94a3b8; line-height: 1.4;
-      pointer-events: none; z-index: 5;
-    }
-    #guide-box b { color: #f8fafc; }
-
-    /* Virtual Joystick */
-    #joystick-base {
-      position: absolute; width: 130px; height: 130px; border-radius: 50%;
-      background: rgba(15, 23, 42, 0.45); border: 2px solid rgba(0, 229, 255, 0.55);
-      transform: translate(-50%, -50%); pointer-events: none; display: none; z-index: 5;
+      display: none;
+      z-index: 50;
     }
     #joystick-knob {
-      position: absolute; width: 52px; height: 52px; border-radius: 50%;
+      position: absolute;
+      width: 52px;
+      height: 52px;
+      border-radius: 50%;
       background: radial-gradient(circle at 35% 35%, #38bdf8, #0284c7);
-      border: 2px solid #ffffff; transform: translate(-50%, -50%);
-      pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,0.6); display: none; z-index: 6;
+      border: 2px solid #ffffff;
+      transform: translate(-50%, -50%);
+      pointer-events: none;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.6);
+      display: none;
+      z-index: 51;
+    }
+
+    /* Attack Action Button (ARPG Action Key) */
+    #attack-btn {
+      position: absolute;
+      bottom: 28px;
+      right: 28px;
+      width: 80px;
+      height: 80px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #0284c7, #0f172a);
+      border: 3px solid #38bdf8;
+      box-shadow: 0 4px 18px rgba(2, 132, 199, 0.6), inset 0 2px 6px rgba(255, 255, 255, 0.4);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      cursor: pointer;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+      z-index: 60;
+      transition: transform 0.08s ease, filter 0.08s ease;
+      overflow: hidden;
+      pointer-events: auto;
+    }
+    #attack-btn:active {
+      transform: scale(0.90);
+      filter: brightness(1.25);
+    }
+    .attack-icon {
+      font-size: 30px;
+      line-height: 1;
+      pointer-events: none;
+    }
+    .attack-label {
+      font-size: 10px;
+      font-weight: 800;
+      color: #e0f2fe;
+      margin-top: 2px;
+      pointer-events: none;
+      letter-spacing: 0.3px;
+    }
+    #attack-cd-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(15, 23, 42, 0.70);
+      border-radius: 50%;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.1s;
+    }
+
+    /* Zero-Risk Pause Equipment Modal (Rule 5) */
+    #loot-modal {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 7, 13, 0.82);
+      backdrop-filter: blur(10px);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+    }
+    #loot-modal.active {
+      display: flex;
+    }
+    .modal-box {
+      background: #111827;
+      border: 2px solid #3b82f6;
+      border-radius: 16px;
+      width: 90%;
+      max-width: 460px;
+      padding: 20px;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.7), 0 0 20px rgba(59, 130, 246, 0.3);
+      animation: modalPop 0.22s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+    @keyframes modalPop {
+      0% { transform: scale(0.85); opacity: 0; }
+      100% { transform: scale(1.0); opacity: 1; }
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+      padding-bottom: 10px;
+      margin-bottom: 14px;
+    }
+    .modal-title {
+      font-size: 16px;
+      font-weight: 700;
+      color: #60a5fa;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pause-tag {
+      background: #ef4444;
+      color: #fff;
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      letter-spacing: 0.5px;
+    }
+    .equip-compare-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 16px;
+    }
+    .equip-card {
+      background: rgba(255, 255, 255, 0.04);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      padding: 12px;
+    }
+    .equip-card.current {
+      border-color: rgba(148, 163, 184, 0.3);
+    }
+    .equip-card.new-drop {
+      border-color: #10b981;
+      background: rgba(16, 185, 129, 0.08);
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.15);
+    }
+    .card-slot-name {
+      font-size: 10px;
+      font-weight: 700;
+      color: #94a3b8;
+      text-transform: uppercase;
+      margin-bottom: 4px;
+    }
+    .card-item-title {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 8px;
+    }
+    .stat-diff-line {
+      font-size: 12px;
+      margin: 3px 0;
+      display: flex;
+      justify-content: space-between;
+    }
+    .diff-pos { color: #34d399; font-weight: 700; }
+    .diff-neg { color: #f87171; font-weight: 700; }
+    .diff-zero { color: #94a3b8; }
+
+    .modal-actions {
+      display: flex;
+      gap: 10px;
+    }
+    .btn-action {
+      flex: 1;
+      padding: 10px 14px;
+      font-size: 13px;
+      font-weight: 700;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    .btn-equip {
+      background: #10b981;
+      color: #fff;
+    }
+    .btn-equip:hover { background: #059669; }
+    .btn-close {
+      background: rgba(255, 255, 255, 0.12);
+      color: #cbd5e1;
+    }
+    .btn-close:hover { background: rgba(255, 255, 255, 0.2); }
+
+    /* Floor Victory Modal */
+    #victory-modal {
+      display: none;
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(4, 7, 13, 0.88);
+      backdrop-filter: blur(12px);
+      z-index: 110;
+      justify-content: center;
+      align-items: center;
+      pointer-events: auto;
+    }
+    #victory-modal.active { display: flex; }
+    .victory-box {
+      background: #1e1b4b;
+      border: 2px solid #818cf8;
+      border-radius: 18px;
+      width: 90%;
+      max-width: 440px;
+      padding: 24px;
+      text-align: center;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8), 0 0 30px rgba(129, 140, 248, 0.4);
+    }
+    .victory-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fbbf24;
+      margin-bottom: 8px;
+    }
+
+    .floating-dmg {
+      position: absolute;
+      font-family: monospace;
+      font-weight: 800;
+      font-size: 14px;
+      pointer-events: none;
+      text-shadow: 0 2px 4px rgba(0,0,0,0.9);
+      transition: transform 0.05s linear;
+      z-index: 50;
     }
   </style>
-  <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 </head>
 <body>
   <div id="canvas-container"></div>
-  <div id="floating-text-container"></div>
 
-  <!-- Main HUD -->
-  <div id="hud">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
-      <h1 style="font-size: 13px; color: #00e5ff; margin: 0;">
-        ⚔️ Overspire <span style="font-size: 11px; color: #10b981; font-weight: normal;">[Layer 3: Tactical Slime AI]</span>
-      </h1>
-      <button class="btn" id="btn-toggle-hud" onclick="toggleHud()" style="padding: 2px 8px; font-size: 11px; background: #0284c7; color: #fff;">
-        🔼 접기
+  <div id="hud-layer">
+    <!-- Top Stats & Minimap -->
+    <div id="top-bar">
+      <!-- Player & Floor Stats -->
+      <div class="card interactive" style="flex: 1; max-width: 420px;">
+        <div class="hud-title-row">
+          <div style="display: flex; align-items: center; gap: 8px;">
+            <span class="hud-badge" id="floor-badge">1F 던전</span>
+            <span style="font-weight: 700; font-size: 13px;">은발 소년 용사</span>
+          </div>
+          <span class="key-badge" id="key-badge-status">🔑 열쇠 0/1 (미보유)</span>
+        </div>
+
+        <!-- HP Bar -->
+        <div class="bar-container">
+          <span class="bar-label">체력 HP</span>
+          <div class="bar-bg">
+            <div class="bar-fill fill-hero-hp" id="hero-hp-fill" style="width: 100%;"></div>
+          </div>
+          <span id="hero-hp-val" style="width: 60px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
+        </div>
+
+        <!-- Cooldown Bar -->
+        <div class="bar-container">
+          <span class="bar-label">쿨다운</span>
+          <div class="bar-bg">
+            <div class="bar-fill fill-cooldown" id="cooldown-fill" style="width: 0%;"></div>
+          </div>
+          <span id="cooldown-val" style="width: 60px; text-align: right; font-family: monospace; font-size: 11px;">READY</span>
+        </div>
+
+        <!-- Dynamic Stats & Equipped Items -->
+        <div class="stats-row">
+          <span class="stat-chip" id="stat-atk-display">⚔️ 공격력: 12</span>
+          <span class="stat-chip" id="stat-def-display">🛡️ 방어력: 4</span>
+          <span class="stat-chip" id="stat-weapon-name">🗡️ 무기: 녹슨 단검</span>
+        </div>
+      </div>
+
+      <!-- Minimap Card -->
+      <div class="card interactive" id="minimap-card">
+        <div style="font-size: 11px; font-weight: 700; color: #94a3b8;">던전 레이아웃</div>
+        <canvas id="minimap-canvas" width="110" height="110"></canvas>
+      </div>
+    </div>
+
+    <!-- Notification Banner -->
+    <div id="combat-banner">
+      던전을 탐험하여 🔑 1/1 열쇠를 지닌 키 슬라임을 찾으세요!
+    </div>
+
+    <!-- Guide Box -->
+    <div id="guide-box">
+      <b>⚔️ Overspire 실시간 액션 전투 가이드</b><br>
+      • <b>검 휘두르기 [⚔️ 공격 / Space]</b>: 우하단 공격 버튼(또는 스페이스바)을 눌러 전방의 슬라임을 <b>칼끝 사거리(1.8m)에서 직접 베어내고 넉백</b>시키세요!<br>
+      • <b>특수 돌진 스킬 회피</b>: 빨간 궤적의 차징 돌진이 시작되면 횡이동으로 피한 뒤, <b>어지러워하는 무방비 상태(치명타)</b>를 베어 가르세요!<br>
+      • <b>장비 파밍</b>: 보물 방에서 새 장비를 장착하면 즉시 스탯이 상승하며, 기존 장비는 바닥에 남지 않고 깔끔하게 정리됩니다.
+    </div>
+
+    <!-- Floating Dynamic Touch Joystick -->
+    <div id="joystick-base"></div>
+    <div id="joystick-knob"></div>
+
+    <!-- Attack Action Button (ARPG Attack Key) -->
+    <div id="attack-btn" class="interactive">
+      <span class="attack-icon">⚔️</span>
+      <span class="attack-label">공격 [Space]</span>
+      <div id="attack-cd-overlay"></div>
+    </div>
+  </div>
+
+  <!-- Zero-Risk Pause Loot Comparison Modal (Rule 5) -->
+  <div id="loot-modal">
+    <div class="modal-box">
+      <div class="modal-header">
+        <div class="modal-title">
+          <span>📦 장비 발견 & 실시간 비교</span>
+        </div>
+        <span class="pause-tag">⏱️ ZERO-RISK PAUSE (게임 완전 일시정지)</span>
+      </div>
+
+      <div class="equip-compare-grid">
+        <!-- Current Equipped -->
+        <div class="equip-card current">
+          <div class="card-slot-name" id="modal-slot-name">WEAPON SLOT</div>
+          <div class="card-item-title" id="modal-curr-name">🗡️ 녹슨 단검</div>
+          <div class="stat-diff-line">
+            <span>공격력:</span>
+            <span id="modal-curr-atk">+5</span>
+          </div>
+          <div class="stat-diff-line">
+            <span>방어력:</span>
+            <span id="modal-curr-def">+0</span>
+          </div>
+          <div class="stat-diff-line">
+            <span>체력:</span>
+            <span id="modal-curr-hp">+0</span>
+          </div>
+        </div>
+
+        <!-- New Drop -->
+        <div class="equip-card new-drop">
+          <div class="card-slot-name" style="color: #34d399;">NEW DISCOVERY</div>
+          <div class="card-item-title" id="modal-new-name">⚔️ 수정 장검</div>
+          <div class="stat-diff-line">
+            <span>공격력:</span>
+            <span id="modal-new-atk" class="diff-pos">+14 (+9)</span>
+          </div>
+          <div class="stat-diff-line">
+            <span>방어력:</span>
+            <span id="modal-new-def" class="diff-pos">+2 (+2)</span>
+          </div>
+          <div class="stat-diff-line">
+            <span>체력:</span>
+            <span id="modal-new-hp" class="diff-pos">+20 (+20)</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn-action btn-equip" onclick="confirmEquip()">⚔️ 장착하기 (교체 후 기존 장비 삭제)</button>
+        <button class="btn-action btn-close" onclick="closeLootModal()">❌ 그대로 두기 (닫기)</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floor Victory Modal -->
+  <div id="victory-modal">
+    <div class="victory-box">
+      <div class="victory-title">🏆 층 탈출 성공!</div>
+      <p style="font-size: 13.5px; color: #cbd5e1; margin-bottom: 16px; line-height: 1.6;">
+        🔑 단일 열쇠를 획득하고 던전 출구 계단을 무사히 돌파했습니다!<br>
+        획득한 장비와 남은 체력은 다음 층으로 인계됩니다.
+      </p>
+      <button class="btn-action btn-equip" style="width: 100%; padding: 12px; font-size: 15px;" onclick="enterNextFloor()">
+        🪜 다음 층으로 진입 (Next Floor)
       </button>
     </div>
+  </div>
 
-    <div id="hud-body" style="margin-top: 6px;">
-      <!-- Hero Health Bar -->
-      <div class="bar-container">
-        <span class="bar-label">용사 HP</span>
-        <div class="bar-bg">
-          <div class="bar-fill fill-hero" id="hero-hp-fill" style="width: 100%;"></div>
-        </div>
-        <span id="hero-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">100/100</span>
-      </div>
-
-      <!-- Slime 1 Health Bar -->
-      <div class="bar-container">
-        <span class="bar-label">포링 A</span>
-        <div class="bar-bg">
-          <div class="bar-fill fill-slime" id="slime-0-hp-fill" style="width: 100%; background: linear-gradient(90deg, #f43f5e, #fb7185);"></div>
-        </div>
-        <span id="slime-0-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
-      </div>
-
-      <!-- Slime 2 Health Bar -->
-      <div class="bar-container">
-        <span class="bar-label">포링 B</span>
-        <div class="bar-bg">
-          <div class="bar-fill fill-slime" id="slime-1-hp-fill" style="width: 100%; background: linear-gradient(90deg, #ec4899, #f472b6);"></div>
-        </div>
-        <span id="slime-1-hp-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">30/30</span>
-      </div>
-
-      <!-- Attack Cooldown Gauge -->
-      <div class="bar-container">
-        <span class="bar-label">공격 쿨다운</span>
-        <div class="bar-bg">
-          <div class="bar-fill fill-cooldown" id="cooldown-fill" style="width: 0%;"></div>
-        </div>
-        <span id="cooldown-val" style="width: 52px; text-align: right; font-family: monospace; font-size: 11px;">READY</span>
-      </div>
-
-      <!-- Real-time Combat Notification Banner -->
-      <div id="combat-banner">
-        슬라임에게 접근해 돌진 텔레그래프를 유도해 보세요!
-      </div>
-
-      <!-- Controls & Spawner -->
-      <div style="margin-top: 6px; padding-top: 6px; border-top: 1px solid rgba(255,255,255,0.1);">
-        <div class="btn-row">
-          <button class="btn" onclick="updateViewSize(14.4)">14.4m (1x)</button>
-          <button class="btn" onclick="updateViewSize(21.6)">21.6m (1.5x)</button>
-          <button class="btn active" id="btn-29" onclick="updateViewSize(28.8)">28.8m (2x 표준)</button>
-          <button class="btn" onclick="updateViewSize(36.0)">36.0m</button>
-          <button class="btn" onclick="respawnAllSlimes()" style="background: #059669; color: #fff; margin-left: auto;">🔄 포링 리스폰</button>
-        </div>
-      </div>
+  <!-- Floor Defeat Modal (High Tension GameOver) -->
+  <div id="defeat-modal" style="display: none; position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 5, 5, 0.90); backdrop-filter: blur(12px); z-index: 120; justify-content: center; align-items: center; pointer-events: auto;">
+    <div class="victory-box" style="border-color: #ef4444; box-shadow: 0 0 40px rgba(239, 68, 68, 0.4);">
+      <div class="victory-title" style="color: #ef4444;">💀 전투 불능!</div>
+      <p style="font-size: 13.5px; color: #cbd5e1; margin-bottom: 16px; line-height: 1.6;">
+        슬라임 무리의 맹공에 체력이 모두 소진되었습니다.<br>
+        정면 돌진을 회피하고 측후면 카운터를 노려보세요!
+      </p>
+      <button class="btn-action btn-close" style="width: 100%; padding: 12px; font-size: 15px; background: #dc2626; color: #fff;" onclick="restartRun()">
+        🔄 던전 1층에서 재도전
+      </button>
     </div>
   </div>
-
-  <!-- Guide Box -->
-  <div id="guide-box">
-    <b>🧠 Layer 3 전술 공략 가이드</b><br>
-    • <b>선회 속도 제한(120°/s)</b>: 슬라임은 플레이어를 즉각 조준하지 못함 (원형 회피로 측면 선점 가능).<br>
-    • <b>텔레그래프(0.5초 경고)</b>: 붉은 궤적이 나타나면 공격 방향이 고정되므로 옆으로 빗겨 회피!<br>
-    • <b>무방비 카운터(Recovery 0.4초)</b>: 돌진 직후 슬라임이 정지할 때 측후면을 치면 <b>일방 타격 확정</b>!
-  </div>
-
-  <!-- Touch Joystick -->
-  <div id="joystick-base"></div>
-  <div id="joystick-knob"></div>
 
   <script>
     // ========================================================
@@ -195,10 +619,10 @@
     // ========================================================
     const container = document.getElementById('canvas-container');
     const scene = new THREE.Scene();
-    scene.background = new THREE.Color(0x0e1118);
+    scene.background = new THREE.Color(0x0a0d14);
 
     const aspect = window.innerWidth / window.innerHeight;
-    let orthoSize = 28.8; // 2x Zoom-Out Default
+    const orthoSize = 28.8; // Standard 2x Zoom-Out
     const camera = new THREE.OrthographicCamera(
       -orthoSize * aspect / 2, orthoSize * aspect / 2,
       orthoSize / 2, -orthoSize / 2,
@@ -219,63 +643,200 @@
     renderer.shadowMap.type = THREE.PCFSoftShadowMap;
     container.appendChild(renderer.domElement);
 
-    // Lighting
-    const ambientLight = new THREE.AmbientLight(0xcfd8dc, 1.25);
+    // Balanced Atmospheric Lighting: Clear visibility without blinding glare
+    const ambientLight = new THREE.AmbientLight(0x64748b, 0.75);
     scene.add(ambientLight);
 
-    const sun = new THREE.DirectionalLight(0xfff5e6, 1.35);
-    sun.position.set(10, 20, 12);
+    const sun = new THREE.DirectionalLight(0xfff1e0, 1.05);
+    sun.position.set(12, 22, 14);
     sun.castShadow = true;
     sun.shadow.mapSize.width = 1024;
     sun.shadow.mapSize.height = 1024;
     sun.shadow.camera.near = 0.5;
-    sun.shadow.camera.far = 60;
-    sun.shadow.camera.left = -22;
-    sun.shadow.camera.right = 22;
-    sun.shadow.camera.top = 22;
-    sun.shadow.camera.bottom = -22;
+    sun.shadow.camera.far = 80;
+    sun.shadow.camera.left = -30;
+    sun.shadow.camera.right = 30;
+    sun.shadow.camera.top = 30;
+    sun.shadow.camera.bottom = -30;
     scene.add(sun);
 
-    // Arena Floor
-    const floorGeo = new THREE.PlaneGeometry(24, 24);
-    const floorMat = new THREE.MeshLambertMaterial({ color: 0x1f232d });
-    const floor = new THREE.Mesh(floorGeo, floorMat);
-    floor.rotation.x = -Math.PI / 2;
-    floor.receiveShadow = true;
-    scene.add(floor);
-
-    const gridHelper = new THREE.GridHelper(24, 24, 0x00d0e0, 0x2e3542);
-    gridHelper.position.y = 0.005;
-    scene.add(gridHelper);
-
-    // Arena Walls
-    const wallMat = new THREE.MeshLambertMaterial({ color: 0x151922 });
-    const createWall = (w, h, d, x, y, z) => {
-      const mesh = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), wallMat);
-      mesh.position.set(x, y, z);
-      mesh.castShadow = true;
-      mesh.receiveShadow = true;
-      scene.add(mesh);
+    // ========================================================
+    // --- 2. Procedural Dungeon Generation & Topology ---
+    // ========================================================
+    const RoomType = {
+      START: 0,
+      KEY: 1,
+      LOOT: 2,
+      NORMAL: 3,
+      EXIT: 4
     };
-    createWall(24, 1.6, 0.8, 0, 0.8, -12.4);
-    createWall(24, 1.6, 0.8, 0, 0.8, 12.4);
-    createWall(0.8, 1.6, 24, -12.4, 0.8, 0);
-    createWall(0.8, 1.6, 24, 12.4, 0.8, 0);
 
-    // Pillars
-    const pillarMat = new THREE.MeshLambertMaterial({ color: 0x2a303c });
-    const pillarGeo = new THREE.CylinderGeometry(0.55, 0.60, 2.2, 16);
-    [[-6, -6], [6, -6], [-6, 6], [6, 6]].forEach(([px, pz]) => {
-      const pil = new THREE.Mesh(pillarGeo, pillarMat);
-      pil.position.set(px, 1.1, pz);
-      pil.castShadow = true;
-      pil.receiveShadow = true;
-      scene.add(pil);
-    });
+    let currentFloorNum = 1;
+    let dungeonLayout = null;
+    const dungeonMeshes = [];
+
+    const ROOM_SIZE = 11.0;
+    const CORRIDOR_WIDTH = 3.6;
+    const GRID_SPACING = 17.0;
+
+    function generateDungeonLayout(seedVal, roomCount = 6) {
+      // Deterministic PRNG
+      let s = seedVal;
+      const rng = () => {
+        s = (s * 9301 + 49297) % 233280;
+        return s / 233280;
+      };
+
+      const coords = [{ x: 0, y: 0 }];
+      const directions = [{ x: 1, y: 0 }, { x: -1, y: 0 }, { x: 0, y: 1 }, { x: 0, y: -1 }];
+      let curr = { x: 0, y: 0 };
+
+      while (coords.length < roomCount) {
+        const d = directions[Math.floor(rng() * directions.length)];
+        const nxt = { x: curr.x + d.x, y: curr.y + d.y };
+        if (!coords.some(c => c.x === nxt.x && c.y === nxt.y)) {
+          coords.push(nxt);
+        }
+        curr = nxt;
+      }
+
+      const rooms = coords.map((c, i) => {
+        let type = RoomType.NORMAL;
+        if (i === 0) type = RoomType.START;
+        else if (i === 1) type = RoomType.KEY;
+        else if (i === roomCount - 1) type = RoomType.EXIT;
+        else if (i === 2) type = RoomType.LOOT;
+        else type = RoomType.NORMAL;
+
+        return {
+          id: i,
+          gx: c.x,
+          gy: c.y,
+          wx: c.x * GRID_SPACING,
+          wz: c.y * GRID_SPACING,
+          type: type,
+          connected: []
+        };
+      });
+
+      // Spanning tree backbone
+      for (let i = 0; i < roomCount - 1; i++) {
+        rooms[i].connected.push(i + 1);
+        rooms[i + 1].connected.push(i);
+      }
+
+      // Add cycle edges
+      for (let i = 0; i < roomCount; i++) {
+        for (let j = i + 2; j < roomCount; j++) {
+          const manhattan = Math.abs(rooms[i].gx - rooms[j].gx) + Math.abs(rooms[i].gy - rooms[j].gy);
+          if (manhattan === 1 && rng() < 0.45) {
+            rooms[i].connected.push(j);
+            rooms[j].connected.push(i);
+          }
+        }
+      }
+
+      return { rooms, startId: 0, keyId: 1, exitId: roomCount - 1, lootId: 2 };
+    }
+
+    // Material Palettes
+    const floorTileMat = new THREE.MeshLambertMaterial({ color: 0x1e2430 });
+    const corridorTileMat = new THREE.MeshLambertMaterial({ color: 0x181d26 });
+    const wallMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+    const wallPillarMat = new THREE.MeshLambertMaterial({ color: 0x475569 });
+
+    function buildDungeonVisuals(layout) {
+      // Clear previous dungeon meshes
+      dungeonMeshes.forEach(m => scene.remove(m));
+      dungeonMeshes.length = 0;
+
+      const floorGeo = new THREE.BoxGeometry(ROOM_SIZE, 0.4, ROOM_SIZE);
+      const pillarGeo = new THREE.BoxGeometry(0.8, 1.4, 0.8);
+
+      layout.rooms.forEach(r => {
+        // Room Floor
+        const f = new THREE.Mesh(floorGeo, floorTileMat);
+        f.position.set(r.wx, -0.2, r.wz);
+        f.receiveShadow = true;
+        scene.add(f);
+        dungeonMeshes.push(f);
+
+        // Grid helper on room floor
+        const grid = new THREE.GridHelper(ROOM_SIZE, 6, 0x00d0e0, 0x2e3542);
+        grid.position.set(r.wx, 0.005, r.wz);
+        scene.add(grid);
+        dungeonMeshes.push(grid);
+
+        // Room 4 Corner Pillars
+        const half = ROOM_SIZE / 2;
+        const corners = [
+          [-half, -half], [half, -half], [-half, half], [half, half]
+        ];
+        corners.forEach(([cx, cz]) => {
+          const p = new THREE.Mesh(pillarGeo, wallPillarMat);
+          p.position.set(r.wx + cx, 0.7, r.wz + cz);
+          p.castShadow = true;
+          p.receiveShadow = true;
+          scene.add(p);
+          dungeonMeshes.push(p);
+        });
+      });
+
+      // Corridors connecting adjacent rooms
+      const connectedEdges = new Set();
+      layout.rooms.forEach(r => {
+        r.connected.forEach(nextId => {
+          const edgeKey = [Math.min(r.id, nextId), Math.max(r.id, nextId)].join('-');
+          if (!connectedEdges.has(edgeKey)) {
+            connectedEdges.add(edgeKey);
+            const nxt = layout.rooms[nextId];
+            const midX = (r.wx + nxt.wx) / 2;
+            const midZ = (r.wz + nxt.wz) / 2;
+
+            const isHoriz = (r.gy === nxt.gy);
+            const length = GRID_SPACING - ROOM_SIZE + 0.5;
+            const w = isHoriz ? length : CORRIDOR_WIDTH;
+            const d = isHoriz ? CORRIDOR_WIDTH : length;
+
+            const cGeo = new THREE.BoxGeometry(w, 0.38, d);
+            const corr = new THREE.Mesh(cGeo, corridorTileMat);
+            corr.position.set(midX, -0.2, midZ);
+            corr.receiveShadow = true;
+            scene.add(corr);
+            dungeonMeshes.push(corr);
+          }
+        });
+      });
+    }
 
     // ========================================================
-    // --- 2. Voxel Helper & Hero Model ---
+    // --- 3. Hero Voxel Entity Setup & 6-Slot Equipment ---
     // ========================================================
+    let heroHp = 100;
+    let heroMaxHp = 100;
+    let heroBaseAtk = 12.0;
+    let heroBaseDef = 4.0;
+    let heroCooldown = 0.0;
+    const BASE_COOLDOWN = 0.28; // Snappy 0.28s attack cooldown
+
+    // Equipped Items
+    const equippedWeapon = {
+      id: 'wpn_01',
+      name: '녹슨 단검',
+      slot: 'WEAPON',
+      bonusAtk: 5.0,
+      bonusDef: 0.0,
+      bonusHp: 0,
+      icon: '🗡️'
+    };
+
+    function getHeroTotalAtk() {
+      return heroBaseAtk + (equippedWeapon ? equippedWeapon.bonusAtk : 0);
+    }
+    function getHeroTotalDef() {
+      return heroBaseDef + (equippedWeapon ? equippedWeapon.bonusDef : 0);
+    }
+
     const createVoxel = (w, h, d, color, x, y, z, parent) => {
       const geo = new THREE.BoxGeometry(w, h, d);
       const mat = new THREE.MeshLambertMaterial({ color: color });
@@ -289,6 +850,11 @@
 
     const heroGroup = new THREE.Group();
     scene.add(heroGroup);
+
+    // Warm Hero Exploration Lantern (Wide & Clear Atmosphere)
+    const heroTorch = new THREE.PointLight(0xffbe76, 1.05, 18.0, 1.1);
+    heroTorch.position.set(0, 1.0, 0.2);
+    heroGroup.add(heroTorch);
 
     const shadowGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.02, 16);
     const shadowMat = new THREE.MeshBasicMaterial({ color: 0x05070a, transparent: true, opacity: 0.55 });
@@ -306,7 +872,7 @@
       return mesh;
     };
 
-    // Hero Model
+    // Hero Torso & Tunic
     addHeroVoxel(0.44, 0.38, 0.28, 0xd0bd95, 0, 0.52, 0);
     addHeroVoxel(0.46, 0.08, 0.30, 0x5b4535, 0, 0.36, 0);
     addHeroVoxel(0.12, 0.09, 0.04, 0xf5c542, 0, 0.36, 0.16);
@@ -399,12 +965,110 @@
     addHeroVoxel(0.15, 0.28, 0.16, 0x814126, -0.12, 0.14, 0);
     addHeroVoxel(0.15, 0.28, 0.16, 0x814126, 0.12, 0.14, 0);
 
+    // Glowing Cyan Slash Arc Effect Mesh
+    const slashGeo = new THREE.RingGeometry(0.7, 1.95, 24, 1, -Math.PI * 0.45, Math.PI * 0.9);
+    const slashMat = new THREE.MeshBasicMaterial({
+      color: 0x38bdf8,
+      transparent: true,
+      opacity: 0.0,
+      side: THREE.DoubleSide
+    });
+    const slashArcMesh = new THREE.Mesh(slashGeo, slashMat);
+    slashArcMesh.rotation.x = -Math.PI / 2;
+    slashArcMesh.position.set(0, 0.45, 0.30);
+    heroGroup.add(slashArcMesh);
+
+    let isSlashing = false;
+    let slashAnimTimer = 0.0;
+    const SLASH_DURATION = 0.16;
+    const ATTACK_REACH = 1.95; // 1.95m Sword Reach
+
+    window.triggerHeroAttack = (e) => {
+      if (e) {
+        if (e.preventDefault) e.preventDefault();
+        if (e.stopPropagation) e.stopPropagation();
+      }
+      if (isGamePaused || heroCooldown > 0.0 || heroHp <= 0) return;
+
+      heroCooldown = BASE_COOLDOWN;
+      isSlashing = true;
+      slashAnimTimer = SLASH_DURATION;
+
+      executeHeroSlash();
+    };
+
+    function executeHeroSlash() {
+      const curHeroAtk = getHeroTotalAtk();
+      let hitAny = false;
+
+      slimes.forEach(s => {
+        if (s.state === SlimeState.DEAD) return;
+
+        const sx = s.group.position.x;
+        const sz = s.group.position.z;
+        const diffX = sx - posX;
+        const diffZ = sz - posZ;
+        const dist = Math.hypot(diffX, diffZ);
+
+        if (dist <= ATTACK_REACH) {
+          const dirX = diffX / (dist || 0.001);
+          const dirZ = diffZ / (dist || 0.001);
+          const dot = dirX * (facingX || 0) + dirZ * (facingZ || 1);
+
+          // Frontal 140 degree wide sweep
+          if (dot >= 0.30) {
+            hitAny = true;
+            const isRecoveryPunish = (s.state === SlimeState.RECOVERY);
+            const bonusMult = isRecoveryPunish ? 1.6 : 1.25;
+            const slashDmg = Math.round((curHeroAtk - s.def) * bonusMult);
+
+            s.hp = Math.max(0, s.hp - slashDmg);
+            s.kbX = (facingX || 0) * 8.5;
+            s.kbZ = (facingZ || 1) * 8.5;
+            s.flashTimer = 0.16;
+
+            const hitPos = new THREE.Vector3(sx, 0.6, sz);
+            spawnFloatingDamage(`⚔️ -${slashDmg} SLASH!`, isRecoveryPunish ? "#34d399" : "#38bdf8", hitPos);
+            spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x38bdf8, 24);
+
+            showBanner(isRecoveryPunish
+              ? `⚡ <b>무방비 카운터 슬래시!</b> 슬라임 -${slashDmg} 대량 피해!`
+              : `⚔️ <b>검 휘두르기 적중!</b> 슬라임 -${slashDmg} 피해 & 넉백!`, 'advantage');
+
+            if (s.hp <= 0) {
+              s.state = SlimeState.DEAD;
+              s.group.visible = false;
+              spawnFloatingDamage(`💀 DEFEATED!`, "#fbbf24", hitPos);
+              spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x10b981, 28);
+
+              if (s.isKeyCarrier) {
+                hasFloorKey = true;
+                const keyBadge = document.getElementById('key-badge-status');
+                keyBadge.className = 'key-badge acquired';
+                keyBadge.textContent = '🔑 열쇠 1/1 (계단 개방!)';
+                unlockExitStairs();
+                showBanner(`🔑 <b>1/1 열쇠 획득!</b> 출구 계단의 황금빛 포탈이 활성화되었습니다!`, 'advantage');
+                spawnFloatingDamage(`🔑 1/1 KEY ACQUIRED!`, "#fbbf24", new THREE.Vector3(posX, 1.5, posZ));
+              }
+            }
+          }
+        }
+      });
+
+      if (hitAny) {
+        hitstopTimer = 0.04;
+        shakeTimer = 0.08;
+      }
+    }
+
     // ========================================================
-    // --- 3. Tactical Slime Entity Factory & FSM ---
+    // --- 4. Tactical Slime Factory ---
     // ========================================================
     const SlimeState = {
       IDLE: 'IDLE',
       CHASE: 'CHASE',
+      ATTACK_WINDUP: 'ATTACK_WINDUP',
+      ATTACK_SLAM: 'ATTACK_SLAM',
       TELEGRAPH: 'TELEGRAPH',
       DASH: 'DASH',
       RECOVERY: 'RECOVERY',
@@ -413,15 +1077,12 @@
 
     const slimes = [];
 
-    function createSlime(id, startX, startZ, colorHex = 0x22c55e) {
+    function createSlime(id, startX, startZ, isKeyCarrier = false) {
       const group = new THREE.Group();
       group.position.set(startX, 0, startZ);
       scene.add(group);
 
-      const shadow = new THREE.Mesh(
-        new THREE.CylinderGeometry(0.36, 0.36, 0.02, 16),
-        shadowMat
-      );
+      const shadow = new THREE.Mesh(new THREE.CylinderGeometry(0.36, 0.36, 0.02, 16), shadowMat);
       shadow.position.y = 0.01;
       group.add(shadow);
 
@@ -429,9 +1090,7 @@
       group.add(bodyPivot);
 
       const meshes = [];
-
-      // Helper to add voxel cube to poring and track it for flashing
-      const addPoringVoxel = (w, h, d, color, x, y, z) => {
+      const addSlimeVoxel = (w, h, d, color, x, y, z) => {
         const geo = new THREE.BoxGeometry(w, h, d);
         const mat = new THREE.MeshLambertMaterial({ color: color });
         const mesh = new THREE.Mesh(geo, mat);
@@ -443,50 +1102,43 @@
         return mesh;
       };
 
-      // Voxel Color Palettes (ID 0: Strawberry Milk Pink, ID 1: Cherry Berry Pink)
-      const baseTone   = (id === 0) ? 0xe11d48 : 0xbe123c; // Bottom shadow
-      const lowerTone  = (id === 0) ? 0xf43f5e : 0xe11d48; // Main lower bulge
-      const midTone    = (id === 0) ? 0xfb7185 : 0xf43f5e; // Mid body & cheeks
-      const upperTone  = (id === 0) ? 0xfda4af : 0xfb7185; // Upper dome
-      const crownTone  = (id === 0) ? 0xfecdd3 : 0xfda4af; // Top crown
-      const blushTone  = 0xbe123c; // Rosy cherry cheeks
+      // 5-Layer Pink Mochi Slime Silhouette
+      addSlimeVoxel(0.64, 0.14, 0.64, 0xe11d48, 0, 0.08, 0);
+      addSlimeVoxel(0.76, 0.16, 0.76, 0xf43f5e, 0, 0.22, 0);
+      addSlimeVoxel(0.74, 0.16, 0.74, 0xfb7185, 0, 0.38, 0);
+      addSlimeVoxel(0.60, 0.14, 0.60, 0xfda4af, 0, 0.52, 0);
+      addSlimeVoxel(0.36, 0.10, 0.36, 0xfecdd3, 0, 0.64, 0);
 
-      // --- 3D Voxel Poring Body (Layered Mochi Silhouette) ---
-      // 1. Base Layer (Bottom Shadow)
-      addPoringVoxel(0.64, 0.14, 0.64, baseTone, 0, 0.08, 0);
-      // 2. Lower Plump Bulge (Main Cheeks & Bottom)
-      addPoringVoxel(0.76, 0.16, 0.76, lowerTone, 0, 0.22, 0);
-      // 3. Mid Face Layer
-      addPoringVoxel(0.74, 0.16, 0.74, midTone, 0, 0.38, 0);
-      // 4. Upper Dome Layer
-      addPoringVoxel(0.60, 0.14, 0.60, upperTone, 0, 0.52, 0);
-      // 5. Crown Top Layer
-      addPoringVoxel(0.36, 0.10, 0.36, crownTone, 0, 0.64, 0);
+      // Face
+      addSlimeVoxel(0.09, 0.18, 0.04, 0x0f0b15, -0.16, 0.38, 0.38);
+      addSlimeVoxel(0.05, 0.06, 0.04, 0xffffff, -0.17, 0.42, 0.39);
+      addSlimeVoxel(0.09, 0.18, 0.04, 0x0f0b15, 0.16, 0.38, 0.38);
+      addSlimeVoxel(0.05, 0.06, 0.04, 0xffffff, 0.15, 0.42, 0.39);
+      addSlimeVoxel(0.12, 0.07, 0.03, 0xbe123c, -0.27, 0.27, 0.38);
+      addSlimeVoxel(0.12, 0.07, 0.03, 0xbe123c, 0.27, 0.27, 0.38);
+      addSlimeVoxel(0.08, 0.05, 0.03, 0x881337, 0, 0.28, 0.38);
 
-      // --- 3D Voxel Face ---
-      // Left Eye: Vertical Voxel Bar
-      addPoringVoxel(0.09, 0.18, 0.04, 0x0f0b15, -0.16, 0.38, 0.38);
-      // Left Eye Sparkle Glint: Protruding White Voxel
-      addPoringVoxel(0.05, 0.06, 0.04, 0xffffff, -0.17, 0.42, 0.39);
+      // Key Indicator (Only for Key Carrier Slime)
+      let keyIndicator = null;
+      if (isKeyCarrier) {
+        keyIndicator = new THREE.Group();
+        keyIndicator.position.set(0, 0.95, 0);
+        bodyPivot.add(keyIndicator);
 
-      // Right Eye: Vertical Voxel Bar
-      addPoringVoxel(0.09, 0.18, 0.04, 0x0f0b15, 0.16, 0.38, 0.38);
-      // Right Eye Sparkle Glint: Protruding White Voxel
-      addPoringVoxel(0.05, 0.06, 0.04, 0xffffff, 0.15, 0.42, 0.39);
+        const keyMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
+        const ring = new THREE.Mesh(new THREE.TorusGeometry(0.14, 0.04, 8, 16), keyMat);
+        ring.rotation.x = Math.PI / 2;
+        keyIndicator.add(ring);
+        const shaft = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.28, 0.06), keyMat);
+        shaft.position.y = -0.16;
+        keyIndicator.add(shaft);
+      }
 
-      // Rosy Cheeks (Blush Voxels)
-      addPoringVoxel(0.12, 0.07, 0.03, blushTone, -0.27, 0.27, 0.38);
-      addPoringVoxel(0.12, 0.07, 0.03, blushTone, 0.27, 0.27, 0.38);
-
-      // Innocent Voxel Mouth
-      addPoringVoxel(0.08, 0.05, 0.03, 0x881337, 0, 0.28, 0.38);
-
-      // Dizzy Stars Container (Shown during RECOVERY state)
+      // Dizzy Stars
       const dizzyStarsGroup = new THREE.Group();
       dizzyStarsGroup.position.set(0, 0.85, 0);
       dizzyStarsGroup.visible = false;
       bodyPivot.add(dizzyStarsGroup);
-
       const starGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
       const starMat = new THREE.MeshBasicMaterial({ color: 0xfbbf24 });
       for (let sIdx = 0; sIdx < 3; sIdx++) {
@@ -496,7 +1148,7 @@
         dizzyStarsGroup.add(star);
       }
 
-      // Ground Telegraph Warning Strip (Cute Pink/Red Dash Lane)
+      // Telegraph Strip
       const telegraphGeo = new THREE.PlaneGeometry(0.85, 3.2);
       const telegraphMat = new THREE.MeshBasicMaterial({
         color: 0xff2555,
@@ -510,144 +1162,693 @@
       telegraphMesh.visible = false;
       group.add(telegraphMesh);
 
+      const isBoss = isKeyCarrier;
+      if (isBoss) {
+        group.scale.set(1.22, 1.22, 1.22);
+      }
+
       const slimeData = {
         id,
         group,
         bodyPivot,
+        keyIndicator,
+        isKeyCarrier,
         dizzyStarsGroup,
         telegraphMesh,
         meshes,
-        hp: 30,
-        maxHp: 30,
+        hp: isBoss ? 75 : 35,
+        maxHp: isBoss ? 75 : 35,
+        normalAtk: isBoss ? 18 : 13, // Balanced normal bump damage (-9~14 net DMG)
+        skillAtk: isBoss ? 26 : 19,  // Charged Dash Skill damage (-15~22 net DMG)
+        def: isBoss ? 2 : 1,
         state: SlimeState.IDLE,
+        facingAngle: Math.PI,
         timer: 0.0,
-        facingAngle: 0.0, // 0 is South (+Z)
-        lockedDashDir: new THREE.Vector2(0, 1),
+        turnSpeedDeg: isBoss ? 75.0 : 85.0, // Slow, manageable turn rate allowing flanking!
+        aggroRadius: isBoss ? 10.0 : 8.5,
+        chaseSpeed: isBoss ? 3.4 : 3.0,  // Relaxed chase speed
+        dashSpeed: isBoss ? 10.5 : 9.5,  // Manageable telegraph dash
+        telegraphDuration: isBoss ? 0.38 : 0.42, // Ample warning to side-step
+        dashDuration: 0.30,
+        recoveryDuration: isBoss ? 0.50 : 0.45, // Generous dizzy counter window!
+        attackCooldown: 1.2 + Math.random() * 0.8,
+        attackCooldownMax: isBoss ? 2.0 : 2.5,
+        skillCooldown: 3.0 + Math.random() * 2.5,
+        skillCooldownMax: isBoss ? 5.0 : 6.0,
+        lockedDashDir: new THREE.Vector2(),
         kbX: 0,
         kbZ: 0,
-        flashTimer: 0.0,
-        // Tunable AI constants
-        turnSpeedDeg: 120.0, // omega = 120 deg/s
-        aggroRadius: 6.5,
-        attackRange: 2.3,
-        chaseSpeed: 2.2,
-        dashSpeed: 7.5,
-        telegraphDuration: 0.5,
-        dashDuration: 0.35,
-        recoveryDuration: 0.4
+        flashTimer: 0.0
       };
 
       slimes.push(slimeData);
       return slimeData;
     }
 
-    createSlime(0, -3.5, -3.5, 0xff6f8f); // Strawberry Milk Pink Poring A
-    createSlime(1, 3.5, -3.5, 0xff5277);  // Cherry Pink Poring B
+    // ========================================================
+    // --- 5. Exit Stairs & 1/1 Key Economy ---
+    // ========================================================
+    let hasFloorKey = false;
+    let stairsUnlocked = false;
+    let exitStairsGroup = null;
+    let lockMesh = null;
+    let portalBeam = null;
+
+    function createExitStairs(wx, wz) {
+      if (exitStairsGroup) scene.remove(exitStairsGroup);
+
+      exitStairsGroup = new THREE.Group();
+      exitStairsGroup.position.set(wx, 0, wz);
+      scene.add(exitStairsGroup);
+
+      const stoneMat = new THREE.MeshLambertMaterial({ color: 0x334155 });
+      const step1 = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.25, 2.4), stoneMat);
+      step1.position.y = 0.125;
+      step1.receiveShadow = true;
+      exitStairsGroup.add(step1);
+
+      const step2 = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.35, 1.8), stoneMat);
+      step2.position.y = 0.30;
+      step2.receiveShadow = true;
+      exitStairsGroup.add(step2);
+
+      // Locked Ruby Cube
+      const lockMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+      lockMesh = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.6, 0.4), lockMat);
+      lockMesh.position.set(0, 0.9, 0);
+      exitStairsGroup.add(lockMesh);
+
+      // Unlocked Gold Portal Beam
+      const portalMat = new THREE.MeshBasicMaterial({
+        color: 0xfbbf24,
+        transparent: true,
+        opacity: 0.75
+      });
+      portalBeam = new THREE.Mesh(new THREE.CylinderGeometry(0.8, 0.8, 2.5, 16), portalMat);
+      portalBeam.position.set(0, 1.4, 0);
+      portalBeam.visible = false;
+      exitStairsGroup.add(portalBeam);
+    }
+
+    function unlockExitStairs() {
+      stairsUnlocked = true;
+      if (lockMesh) lockMesh.visible = false;
+      if (portalBeam) portalBeam.visible = true;
+      spawnSparks(exitStairsGroup.position.x, 1.0, exitStairsGroup.position.z, 0xfbbf24, 30);
+    }
 
     // ========================================================
-    // --- 4. Kinematics, Hero Controls & Bump Combat ---
+    // --- 6. Floor Loot Drop & Zero-Risk Pause (Rule 5) ---
     // ========================================================
-    const MAX_SPEED = 5.2;
-    const ACCEL = 42.0;
-    const FRICTION = 48.0;
+    let activeFloorLoot = null;
+    let isGamePaused = false; // Zero-Risk Pause flag
+    let lootInspectCooldown = 0.0; // Cooldown timer to prevent infinite re-trigger
+    let mustExitLootProximity = false; // Player must walk away before re-inspecting
 
+    // Procedural Floor Loot Table: Higher floors offer upgraded weapons!
+    const floorLootTable = [
+      { id: 'wpn_crystal', name: '수정 장검', slot: 'WEAPON', bonusAtk: 14.0, bonusDef: 2.0, bonusHp: 20, icon: '⚔️' },
+      { id: 'wpn_mithril', name: '미스릴 세이버', slot: 'WEAPON', bonusAtk: 22.0, bonusDef: 4.0, bonusHp: 35, icon: '🗡️' },
+      { id: 'wpn_thunder', name: '천둥의 플랑베르주', slot: 'WEAPON', bonusAtk: 32.0, bonusDef: 6.0, bonusHp: 50, icon: '⚡' },
+      { id: 'wpn_overspire', name: '오버스파이어 룬 블레이드', slot: 'WEAPON', bonusAtk: 45.0, bonusDef: 12.0, bonusHp: 80, icon: '🔮' }
+    ];
+
+    function getFloorLootItem(floorNum) {
+      const idx = Math.min(Math.max(0, floorNum - 1), floorLootTable.length - 1);
+      return floorLootTable[idx];
+    }
+
+    function createLootDrop(wx, wz, itemData) {
+      if (activeFloorLoot && activeFloorLoot.group) {
+        scene.remove(activeFloorLoot.group);
+      }
+
+      const group = new THREE.Group();
+      group.position.set(wx, 0.5, wz);
+      scene.add(group);
+
+      const cubeMat = new THREE.MeshLambertMaterial({
+        color: 0xf59e0b,
+        emissive: 0xd97706,
+        emissiveIntensity: 0.6
+      });
+      const cube = new THREE.Mesh(new THREE.BoxGeometry(0.5, 0.5, 0.5), cubeMat);
+      cube.castShadow = true;
+      group.add(cube);
+
+      activeFloorLoot = {
+        group,
+        cube,
+        item: itemData,
+        baseY: 0.5,
+        time: 0.0,
+        active: true
+      };
+    }
+
+    function openLootModal(newItem) {
+      // RULE 5: ZERO-RISK PAUSE ACTIVATION
+      isGamePaused = true;
+
+      const modal = document.getElementById('loot-modal');
+      const modalSlot = document.getElementById('modal-slot-name');
+      const modalCurrName = document.getElementById('modal-curr-name');
+      const modalCurrAtk = document.getElementById('modal-curr-atk');
+      const modalCurrDef = document.getElementById('modal-curr-def');
+      const modalCurrHp = document.getElementById('modal-curr-hp');
+
+      const modalNewName = document.getElementById('modal-new-name');
+      const modalNewAtk = document.getElementById('modal-new-atk');
+      const modalNewDef = document.getElementById('modal-new-def');
+      const modalNewHp = document.getElementById('modal-new-hp');
+      const btnEquip = document.querySelector('.btn-equip');
+
+      modalSlot.textContent = newItem.slot + ' SLOT';
+      modalCurrName.textContent = equippedWeapon ? (equippedWeapon.icon + ' ' + equippedWeapon.name) : '맨손';
+      const curAtk = equippedWeapon ? equippedWeapon.bonusAtk : 0;
+      const curDef = equippedWeapon ? equippedWeapon.bonusDef : 0;
+      const curHp = equippedWeapon ? equippedWeapon.bonusHp : 0;
+      modalCurrAtk.textContent = `+${curAtk}`;
+      modalCurrDef.textContent = `+${curDef}`;
+      modalCurrHp.textContent = `+${curHp}`;
+
+      modalNewName.textContent = newItem.icon + ' ' + newItem.name;
+      const diffAtk = newItem.bonusAtk - curAtk;
+      const diffDef = newItem.bonusDef - curDef;
+      const diffHp = newItem.bonusHp - curHp;
+
+      // Clean, unambiguous stat delta formatting (0 diff shows grey '변화 없음', not green '+0')
+      const formatDiff = (diff) => {
+        if (diff > 0) return `<span class="diff-pos">(+${diff})</span>`;
+        if (diff < 0) return `<span class="diff-neg">(${diff})</span>`;
+        return `<span class="diff-zero">(변화 없음)</span>`;
+      };
+
+      modalNewAtk.innerHTML = `+${newItem.bonusAtk} ${formatDiff(diffAtk)}`;
+      modalNewDef.innerHTML = `+${newItem.bonusDef} ${formatDiff(diffDef)}`;
+      modalNewHp.innerHTML = `+${newItem.bonusHp} ${formatDiff(diffHp)}`;
+
+      const isSameItem = (diffAtk === 0 && diffDef === 0 && diffHp === 0);
+      if (btnEquip) {
+        btnEquip.textContent = isSameItem ? '⚔️ 장착하기 (동일 장비 - 능력치 변화 없음)' : '⚔️ 장착하기 (기존 장비 삭제)';
+      }
+
+      modal.classList.add('active');
+    }
+
+    window.confirmEquip = () => {
+      if (activeFloorLoot && activeFloorLoot.item) {
+        equippedWeapon.id = activeFloorLoot.item.id;
+        equippedWeapon.name = activeFloorLoot.item.name;
+        equippedWeapon.bonusAtk = activeFloorLoot.item.bonusAtk;
+        equippedWeapon.bonusDef = activeFloorLoot.item.bonusDef;
+        equippedWeapon.bonusHp = activeFloorLoot.item.bonusHp;
+        equippedWeapon.icon = activeFloorLoot.item.icon;
+
+        // Remove floor loot mesh completely from world (clean pickup, old item deleted)
+        if (activeFloorLoot.group) {
+          scene.remove(activeFloorLoot.group);
+        }
+        activeFloorLoot = null;
+
+        // Update HUD
+        document.getElementById('stat-atk-display').textContent = `⚔️ 공격력: ${getHeroTotalAtk()}`;
+        document.getElementById('stat-def-display').textContent = `🛡️ 방어력: ${getHeroTotalDef()}`;
+        document.getElementById('stat-weapon-name').textContent = `${equippedWeapon.icon} 무기: ${equippedWeapon.name}`;
+
+        spawnFloatingDamage(`⚔️ 장착 완료: ${equippedWeapon.name}!`, "#34d399", new THREE.Vector3(posX, 1.2, posZ));
+        spawnSparks(posX, 0.8, posZ, 0x10b981, 24);
+      }
+      closeLootModal();
+    };
+
+    window.closeLootModal = () => {
+      document.getElementById('loot-modal').classList.remove('active');
+      // Resumes Zero-Risk Pause smoothly
+      isGamePaused = false;
+      // Prevent immediate re-trigger: Require player to walk away or wait cooldown
+      lootInspectCooldown = 1.2;
+      mustExitLootProximity = true;
+    };
+
+    // ========================================================
+    // --- 7. Floor Initialization & Seed Generation ---
+    // ========================================================
     let posX = 0, posZ = 0;
     let velX = 0, velZ = 0;
     let facingX = 0, facingZ = 1;
-    let hopCycle = 0;
-
-    let heroHp = 100, heroMaxHp = 100;
-    let heroCooldown = 0.0;
-    const BASE_COOLDOWN = 0.35;
-
     let heroKbX = 0, heroKbZ = 0;
-    const KB_FRICTION = 28.0;
-
     let heroFlashTimer = 0.0;
     let hitstopTimer = 0.0;
     let shakeTimer = 0.0;
+    let hopCycle = 0;
 
-    const keys = { w: false, a: false, s: false, d: false, ArrowUp: false, ArrowLeft: false, ArrowDown: false, ArrowRight: false };
-    let joyActive = false, joyInputX = 0, joyInputZ = 0;
+    const MAX_SPEED = 7.2;
+    const ACCEL = 54.0;
+    const FRICTION = 60.0;
+    const KB_FRICTION = 32.0;
 
-    window.addEventListener('keydown', (e) => {
-      if (keys.hasOwnProperty(e.key)) { keys[e.key] = true; e.preventDefault(); }
-    });
-    window.addEventListener('keyup', (e) => {
-      if (keys.hasOwnProperty(e.key)) { keys[e.key] = false; e.preventDefault(); }
-    });
+    function initFloor(floorNum) {
+      currentFloorNum = floorNum;
+      document.getElementById('floor-badge').textContent = `${floorNum}F 던전`;
 
-    const joyBase = document.getElementById('joystick-base');
-    const joyKnob = document.getElementById('joystick-knob');
-    let touchId = null, joyOriginX = 0, joyOriginY = 0;
+      hasFloorKey = false;
+      stairsUnlocked = false;
+      isGamePaused = false;
 
-    window.addEventListener('touchstart', (e) => {
-      if (e.target.closest('#hud') || e.target.closest('#guide-box')) return;
-      const t = e.changedTouches[0];
-      touchId = t.identifier;
-      joyActive = true;
-      joyOriginX = t.clientX; joyOriginY = t.clientY;
-      joyBase.style.left = joyOriginX + 'px'; joyBase.style.top = joyOriginY + 'px';
-      joyKnob.style.left = joyOriginX + 'px'; joyKnob.style.top = joyOriginY + 'px';
-      joyBase.style.display = 'block'; joyKnob.style.display = 'block';
-    }, { passive: false });
+      const keyBadge = document.getElementById('key-badge-status');
+      keyBadge.className = 'key-badge';
+      keyBadge.textContent = '🔑 열쇠 0/1 (미보유)';
 
-    window.addEventListener('touchmove', (e) => {
-      if (!joyActive) return;
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        const t = e.changedTouches[i];
-        if (t.identifier === touchId) {
-          const dx = t.clientX - joyOriginX;
-          const dy = t.clientY - joyOriginY;
-          const dist = Math.hypot(dx, dy);
-          const maxDist = 55;
-          const angle = Math.atan2(dy, dx);
-          const clamped = Math.min(dist, maxDist);
-          joyKnob.style.left = (joyOriginX + Math.cos(angle) * clamped) + 'px';
-          joyKnob.style.top = (joyOriginY + Math.sin(angle) * clamped) + 'px';
-          joyInputX = (Math.cos(angle) * clamped) / maxDist;
-          joyInputZ = (Math.sin(angle) * clamped) / maxDist;
-          e.preventDefault();
-          break;
-        }
+      // Clear previous slimes
+      slimes.forEach(s => scene.remove(s.group));
+      slimes.length = 0;
+
+      // Generate layout
+      dungeonLayout = generateDungeonLayout(floorNum * 1007 + 42, 6);
+      buildDungeonVisuals(dungeonLayout);
+
+      // Place Hero at Start Room
+      const startRoom = dungeonLayout.rooms[dungeonLayout.startId];
+      posX = startRoom.wx;
+      posZ = startRoom.wz;
+      velX = 0; velZ = 0;
+      heroGroup.position.set(posX, 0, posZ);
+
+      // 1. Key Room: Boss Key Slime + 2 Royal Guards (Pack Encounter)
+      const keyRoom = dungeonLayout.rooms[dungeonLayout.keyId];
+      createSlime(0, keyRoom.wx, keyRoom.wz, true); // Boss Key Slime
+      createSlime(1, keyRoom.wx - 2.6, keyRoom.wz + 1.8, false); // Guard 1
+      createSlime(2, keyRoom.wx + 2.6, keyRoom.wz - 1.8, false); // Guard 2
+
+      // 2. Loot Room: 2 Treasure Guardian Slimes
+      const lootRoom = dungeonLayout.rooms[dungeonLayout.lootId];
+      createSlime(3, lootRoom.wx - 2.2, lootRoom.wz - 1.2, false);
+      createSlime(4, lootRoom.wx + 2.2, lootRoom.wz + 1.2, false);
+      createLootDrop(lootRoom.wx, lootRoom.wz, getFloorLootItem(floorNum));
+
+      // 3. Normal Exploration Rooms: Ambush Slimes
+      if (dungeonLayout.rooms[3]) {
+        createSlime(5, dungeonLayout.rooms[3].wx - 1.8, dungeonLayout.rooms[3].wz + 1.0, false);
       }
-    }, { passive: false });
-
-    const endJoy = (e) => {
-      for (let i = 0; i < e.changedTouches.length; i++) {
-        if (e.changedTouches[i].identifier === touchId) {
-          joyActive = false; touchId = null;
-          joyInputX = 0; joyInputZ = 0;
-          joyBase.style.display = 'none'; joyKnob.style.display = 'none';
-          break;
-        }
+      if (dungeonLayout.rooms[4] && dungeonLayout.rooms[4].id !== dungeonLayout.exitId) {
+        createSlime(6, dungeonLayout.rooms[4].wx + 1.8, dungeonLayout.rooms[4].wz - 1.0, false);
       }
-    };
-    window.addEventListener('touchend', endJoy);
-    window.addEventListener('touchcancel', endJoy);
 
-    // ========================================================
-    // --- 5. Floating Text & FX ---
-    // ========================================================
-    const ftContainer = document.getElementById('floating-text-container');
-    const combatBanner = document.getElementById('combat-banner');
+      // 4. Exit Stairs in Exit Room
+      const exitRoom = dungeonLayout.rooms[dungeonLayout.exitId];
+      createExitStairs(exitRoom.wx, exitRoom.wz);
 
-    function spawnFloatingDamage(text, color, worldPos) {
-      const el = document.createElement('div');
-      el.className = 'floating-dmg';
-      el.textContent = text;
-      el.style.color = color;
-
-      const p = worldPos.clone().project(camera);
-      const x = (p.x * 0.5 + 0.5) * window.innerWidth;
-      const y = (-p.y * 0.5 + 0.5) * window.innerHeight;
-      el.style.left = x + 'px';
-      el.style.top = y + 'px';
-
-      ftContainer.appendChild(el);
-      setTimeout(() => el.remove(), 850);
+      drawMinimap();
+      showBanner(`🏰 ${floorNum}층에 진입했습니다! 🔑 키 슬라임을 찾아 계단을 여세요.`);
     }
 
+    window.enterNextFloor = () => {
+      document.getElementById('victory-modal').classList.remove('active');
+      initFloor(currentFloorNum + 1);
+    };
+
+    window.restartRun = () => {
+      document.getElementById('defeat-modal').style.display = 'none';
+      heroHp = 100;
+      equippedWeapon.id = 'wpn_01';
+      equippedWeapon.name = '녹슨 단검';
+      equippedWeapon.bonusAtk = 5.0;
+      equippedWeapon.bonusDef = 0.0;
+      equippedWeapon.bonusHp = 0;
+      equippedWeapon.icon = '🗡️';
+      document.getElementById('stat-atk-display').textContent = `⚔️ 공격력: ${getHeroTotalAtk()}`;
+      document.getElementById('stat-def-display').textContent = `🛡️ 방어력: ${getHeroTotalDef()}`;
+      document.getElementById('stat-weapon-name').textContent = `${equippedWeapon.icon} 무기: ${equippedWeapon.name}`;
+      initFloor(1);
+    };
+
+    // ========================================================
+    // --- 8. Minimap Renderer ---
+    // ========================================================
+    const minimapCanvas = document.getElementById('minimap-canvas');
+    const miniCtx = minimapCanvas.getContext('2d');
+
+    function drawMinimap() {
+      if (!dungeonLayout) return;
+      miniCtx.clearRect(0, 0, minimapCanvas.width, minimapCanvas.height);
+
+      const mw = minimapCanvas.width;
+      const mh = minimapCanvas.height;
+      const cx = mw / 2;
+      const cy = mh / 2;
+      const scale = 2.4;
+
+      // Draw corridor lines
+      miniCtx.strokeStyle = 'rgba(255, 255, 255, 0.2)';
+      miniCtx.lineWidth = 2;
+      dungeonLayout.rooms.forEach(r => {
+        r.connected.forEach(nextId => {
+          const nxt = dungeonLayout.rooms[nextId];
+          miniCtx.beginPath();
+          miniCtx.moveTo(cx + r.gx * scale * 12, cy + r.gy * scale * 12);
+          miniCtx.lineTo(cx + nxt.gx * scale * 12, cy + nxt.gy * scale * 12);
+          miniCtx.stroke();
+        });
+      });
+
+      // Draw room nodes
+      dungeonLayout.rooms.forEach(r => {
+        const rx = cx + r.gx * scale * 12;
+        const ry = cy + r.gy * scale * 12;
+
+        miniCtx.fillStyle = '#1e293b';
+        if (r.type === RoomType.KEY) miniCtx.fillStyle = '#b45309';
+        else if (r.type === RoomType.EXIT) miniCtx.fillStyle = stairsUnlocked ? '#10b981' : '#6b21a8';
+        else if (r.type === RoomType.LOOT) miniCtx.fillStyle = '#0284c7';
+        else if (r.type === RoomType.START) miniCtx.fillStyle = '#0f766e';
+
+        miniCtx.beginPath();
+        miniCtx.arc(rx, ry, 6, 0, Math.PI * 2);
+        miniCtx.fill();
+        miniCtx.strokeStyle = 'rgba(255, 255, 255, 0.4)';
+        miniCtx.stroke();
+      });
+
+      // Draw Hero location
+      const heroGx = posX / GRID_SPACING;
+      const heroGy = posZ / GRID_SPACING;
+      miniCtx.fillStyle = '#38bdf8';
+      miniCtx.beginPath();
+      miniCtx.arc(cx + heroGx * scale * 12, cy + heroGy * scale * 12, 4, 0, Math.PI * 2);
+      miniCtx.fill();
+    }
+
+    // ========================================================
+    // --- 9. Tactical AI & Bump Combat Mechanics ---
+    // ========================================================
+    function updateSlimeAI(s, dt) {
+      if (s.state === SlimeState.DEAD) return;
+
+      s.timer += dt;
+      const sx = s.group.position.x;
+      const sz = s.group.position.z;
+      const diffX = posX - sx;
+      const diffZ = posZ - sz;
+      const dist = Math.hypot(diffX, diffZ);
+      const toHeroX = diffX / (dist || 0.001);
+      const toHeroZ = diffZ / (dist || 0.001);
+
+      switch (s.state) {
+        case SlimeState.IDLE:
+          s.telegraphMesh.visible = false;
+          s.dizzyStarsGroup.visible = false;
+          const breath = Math.sin(s.timer * 3.5) * 0.05;
+          s.bodyPivot.scale.set(1.0 + breath, 1.0 - breath * 1.5, 1.0 + breath);
+          s.bodyPivot.position.y = 0;
+          if (dist <= s.aggroRadius) {
+            s.state = SlimeState.CHASE;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.CHASE:
+          s.telegraphMesh.visible = false;
+          s.dizzyStarsGroup.visible = false;
+
+          // 1. Cooldown Ticks
+          if (s.skillCooldown > 0.0) s.skillCooldown -= dt;
+          if (s.attackCooldown > 0.0) s.attackCooldown -= dt;
+
+          // Target Angle & Angle Difference
+          const targetAngle = Math.atan2(toHeroX, toHeroZ);
+          let diffAngle = (targetAngle - s.facingAngle + Math.PI) % (Math.PI * 2) - Math.PI;
+
+          // Deliberate, slower turn rate: Gives clear tactical flanking opportunity!
+          const isFacingHero = (Math.abs(diffAngle) <= 0.55); // ~31 deg
+          const turnRate = isFacingHero ? (s.turnSpeedDeg * Math.PI / 180) : (95.0 * Math.PI / 180);
+          const maxTurn = turnRate * dt;
+
+          if (Math.abs(diffAngle) <= maxTurn) {
+            s.facingAngle = targetAngle;
+          } else {
+            s.facingAngle += Math.sign(diffAngle) * maxTurn;
+          }
+
+          // 2. MELEE JUMP SLAM (Normal attack when close to player!)
+          if (s.attackCooldown <= 0.0 && dist <= 1.35 && isFacingHero) {
+            s.state = SlimeState.ATTACK_WINDUP;
+            s.timer = 0.0;
+            s.attackCooldown = s.attackCooldownMax;
+            break;
+          }
+
+          // 3. SPECIAL CHARGED DASH SKILL (Triggered periodically at distance, not spammed!)
+          if (s.skillCooldown <= 0.0 && dist >= 2.8 && dist <= 6.5 && Math.abs(diffAngle) < 0.35) {
+            s.state = SlimeState.TELEGRAPH;
+            s.timer = 0.0;
+            s.skillCooldown = s.skillCooldownMax;
+            const lockedX = Math.sin(s.facingAngle);
+            const lockedZ = Math.cos(s.facingAngle);
+            s.lockedDashDir.set(lockedX, lockedZ);
+            showBanner(`⚠️ <b>슬라임 특수 돌진 스킬 차징!</b> 빨간 궤적 밖으로 회피하세요!`, 'warning');
+            break;
+          }
+
+          // ONLY move forward when facing generally towards player (prevents fleeing backwards)
+          if (isFacingHero) {
+            const moveDirX = Math.sin(s.facingAngle);
+            const moveDirZ = Math.cos(s.facingAngle);
+            s.group.position.x += moveDirX * s.chaseSpeed * dt;
+            s.group.position.z += moveDirZ * s.chaseSpeed * dt;
+
+            const hop = Math.abs(Math.sin(s.timer * 7.5));
+            s.bodyPivot.position.y = hop * 0.28;
+            s.bodyPivot.scale.set(1.15 - hop * 0.22, 0.85 + hop * 0.40, 1.15 - hop * 0.22);
+          } else {
+            // Turning in place mochi squish
+            s.bodyPivot.position.y = 0;
+            s.bodyPivot.scale.set(1.05, 0.95, 1.05);
+          }
+          break;
+
+        case SlimeState.ATTACK_WINDUP:
+          // Crouching & trembling before jump slam (0.32s windup)
+          const trem = Math.sin(s.timer * 40.0) * 0.06;
+          s.bodyPivot.scale.set(1.35 + trem, 0.55 - trem, 1.35 + trem);
+          s.bodyPivot.position.y = 0;
+          if (s.timer >= 0.32) {
+            s.state = SlimeState.ATTACK_SLAM;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.ATTACK_SLAM:
+          // Leaping forward and slamming down (0.20s action)
+          const slamProgress = Math.min(1.0, s.timer / 0.20);
+          const slamHop = Math.sin(slamProgress * Math.PI);
+          s.bodyPivot.position.y = slamHop * 0.50;
+          s.bodyPivot.scale.set(0.85, 1.25, 0.85);
+
+          // Slight forward lunge
+          s.group.position.x += Math.sin(s.facingAngle) * 2.5 * dt;
+          s.group.position.z += Math.cos(s.facingAngle) * 2.5 * dt;
+
+          if (s.timer >= 0.20) {
+            // Slam ground impact check!
+            const impactDist = Math.hypot(posX - s.group.position.x, posZ - s.group.position.z);
+            if (impactDist <= 1.35 && heroInvulnerableTimer <= 0.0) {
+              const curHeroDef = getHeroTotalDef();
+              const heroDmg = Math.max(1, Math.round(s.normalAtk - curHeroDef));
+              heroHp = Math.max(0, heroHp - heroDmg);
+              heroInvulnerableTimer = 0.50;
+              hitstopTimer = 0.04;
+              shakeTimer = 0.12;
+              heroFlashTimer = 0.16;
+
+              const cX = (posX - s.group.position.x) / (impactDist || 0.001);
+              const cZ = (posZ - s.group.position.z) / (impactDist || 0.001);
+              heroKbX = cX * 4.5;
+              heroKbZ = cZ * 4.5;
+
+              spawnFloatingDamage(`💥 -${heroDmg} SLAM`, "#f97316", new THREE.Vector3(posX, 1.2, posZ));
+              spawnSparks(posX, 0.8, posZ, 0xf97316, 16);
+              showBanner(`💥 <b>슬라임 점프 공격 적중!</b> 용사 -${heroDmg} HP 피해!`, 'frontal');
+
+              if (heroHp <= 0) {
+                isGamePaused = true;
+                document.getElementById('defeat-modal').style.display = 'flex';
+                showBanner(`💀 <b>전투 불능!</b> 슬라임의 공격에 쓰러졌습니다.`, 'frontal');
+              }
+            } else {
+              // Missed/Dodged! Dust effect
+              spawnSparks(s.group.position.x, 0.1, s.group.position.z, 0x94a3b8, 8);
+            }
+            s.state = SlimeState.CHASE;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.TELEGRAPH:
+          s.dizzyStarsGroup.visible = false;
+          s.telegraphMesh.visible = true;
+          const ratio = Math.min(1.0, s.timer / s.telegraphDuration);
+          s.telegraphMesh.scale.set(1.0, 1.0, ratio);
+
+          const vib = Math.sin(s.timer * 36.0) * 0.05;
+          s.bodyPivot.scale.set(1.30 + vib, 0.65, 1.30 + vib);
+          s.bodyPivot.position.y = 0;
+
+          if (s.timer >= s.telegraphDuration) {
+            s.state = SlimeState.DASH;
+            s.timer = 0.0;
+            s.telegraphMesh.visible = false;
+          }
+          break;
+
+        case SlimeState.DASH:
+          s.telegraphMesh.visible = false;
+          s.dizzyStarsGroup.visible = false;
+          s.group.position.x += s.lockedDashDir.x * s.dashSpeed * dt;
+          s.group.position.z += s.lockedDashDir.y * s.dashSpeed * dt;
+          s.bodyPivot.scale.set(0.75, 1.32, 0.75);
+          s.bodyPivot.position.y = 0.10;
+
+          if (s.timer >= s.dashDuration) {
+            s.state = SlimeState.RECOVERY;
+            s.timer = 0.0;
+          }
+          break;
+
+        case SlimeState.RECOVERY:
+          s.telegraphMesh.visible = false;
+          s.dizzyStarsGroup.visible = true;
+          s.dizzyStarsGroup.rotation.y += dt * 4.5;
+          s.bodyPivot.scale.set(1.50, 0.36, 1.50);
+          s.bodyPivot.position.y = 0.0;
+
+          if (s.timer >= s.recoveryDuration) {
+            s.state = SlimeState.CHASE;
+            s.dizzyStarsGroup.visible = false;
+            s.timer = 0.0;
+          }
+          break;
+      }
+
+      s.group.rotation.y = s.facingAngle;
+
+      // Knockback damping
+      const moveToward = (current, target, maxDelta) => {
+        if (Math.abs(target - current) <= maxDelta) return target;
+        return current + Math.sign(target - current) * maxDelta;
+      };
+      s.kbX = moveToward(s.kbX, 0, KB_FRICTION * dt);
+      s.kbZ = moveToward(s.kbZ, 0, KB_FRICTION * dt);
+      s.group.position.x += s.kbX * dt;
+      s.group.position.z += s.kbZ * dt;
+
+      if (s.flashTimer > 0.0) {
+        s.flashTimer -= dt;
+        setMeshColor(s.meshes, 0xffe066);
+        if (s.flashTimer <= 0.0) restoreMeshColor(s.meshes);
+      }
+    }
+
+    // Monster Collision & Action Hit System (Zero bump contact damage - Attack via Sword Slash & Slime Skills only!)
+    let heroInvulnerableTimer = 0.0;
+
+    function checkSlimeBump(s) {
+      if (s.state === SlimeState.DEAD) return;
+
+      const sx = s.group.position.x;
+      const sz = s.group.position.z;
+      const diffX = posX - sx;
+      const diffZ = posZ - sz;
+      const dist = Math.hypot(diffX, diffZ);
+      const COLLISION_RADIUS = 0.82;
+
+      if (dist < COLLISION_RADIUS) {
+        const contactX = diffX / (dist || 0.001);
+        const contactZ = diffZ / (dist || 0.001);
+
+        // 1. Rigid Body Separation (Smoothly push apart so entities do NOT pass through each other)
+        const overlap = (COLLISION_RADIUS - dist) + 0.04;
+        posX += contactX * (overlap * 0.55);
+        posZ += contactZ * (overlap * 0.55);
+        s.group.position.x -= contactX * (overlap * 0.45);
+        s.group.position.z -= contactZ * (overlap * 0.45);
+
+        // If hero is in i-frame (invulnerable), ignore damage
+        if (heroInvulnerableTimer > 0.0) return;
+
+        // 2. Dash Skill Hit Check (ONLY damages hero when slime is performing its CHARGED DASH SKILL!)
+        // Simply walking or touching the slime does ZERO damage - No bump combat!
+        if (s.state === SlimeState.DASH) {
+          heroInvulnerableTimer = 0.60;
+          hitstopTimer = 0.05;
+
+          const rawAtk = s.skillAtk;
+          const curHeroDef = getHeroTotalDef();
+          const heroDmg = Math.max(1, Math.round(rawAtk - curHeroDef));
+
+          heroHp = Math.max(0, heroHp - heroDmg);
+          shakeTimer = 0.22;
+
+          heroKbX = contactX * 7.5;
+          heroKbZ = contactZ * 7.5;
+          heroFlashTimer = 0.18;
+
+          spawnFloatingDamage(`⚡ -${heroDmg} DASH HIT!`, "#ef4444", new THREE.Vector3(posX, 1.2, posZ));
+          spawnSparks(posX, 0.8, posZ, 0xef4444, 24);
+          showBanner(`⚡💥 <b>슬라임 특수 돌진 피격!</b> 용사 -${heroDmg} HP 피해! 횡이동으로 회피하세요!`, 'frontal');
+
+          if (heroHp <= 0) {
+            isGamePaused = true;
+            document.getElementById('defeat-modal').style.display = 'flex';
+            showBanner(`💀 <b>전투 불능!</b> 슬라임의 공격에 쓰러졌습니다.`, 'frontal');
+          }
+        }
+      }
+    }
+
+    // ========================================================
+    // --- 10. Floor Interactions (Loot & Stairs) ---
+    // ========================================================
+    function checkFloorInteractions(dt) {
+      if (lootInspectCooldown > 0.0) {
+        lootInspectCooldown -= dt;
+      }
+
+      // 1. Loot Drop Animation & Proximity
+      if (activeFloorLoot && activeFloorLoot.active) {
+        activeFloorLoot.time += dt;
+        activeFloorLoot.cube.position.y = activeFloorLoot.baseY + Math.sin(activeFloorLoot.time * 3.0) * 0.12;
+        activeFloorLoot.cube.rotation.y += dt * 2.0;
+
+        const dist = Math.hypot(posX - activeFloorLoot.group.position.x, posZ - activeFloorLoot.group.position.z);
+        
+        // Player walked away from loot -> clear proximity lock
+        if (dist > 1.8) {
+          mustExitLootProximity = false;
+        }
+
+        // Only trigger inspection if cooldown is over AND player has exited prior proximity
+        if (dist < 1.2 && !isGamePaused && lootInspectCooldown <= 0.0 && !mustExitLootProximity) {
+          openLootModal(activeFloorLoot.item);
+        }
+      }
+
+      // 2. Exit Stairs Proximity
+      if (exitStairsGroup) {
+        const dist = Math.hypot(posX - exitStairsGroup.position.x, posZ - exitStairsGroup.position.z);
+        if (dist < 1.3) {
+          if (hasFloorKey) {
+            // Success! Floor Cleared
+            document.getElementById('victory-modal').classList.add('active');
+            isGamePaused = true;
+          } else {
+            showBanner(`🔒 <b>계단이 잠겨 있습니다!</b> 1/1 열쇠를 지닌 키 슬라임을 처치하세요!`, 'warning');
+          }
+        }
+      }
+    }
+
+    // Floating Sparks & VFX
     const sparks = [];
     const sparkGeo = new THREE.BoxGeometry(0.08, 0.08, 0.08);
     function spawnSparks(x, y, z, colorHex, count = 12) {
@@ -687,6 +1888,44 @@
       }
     }
 
+    function spawnFloatingDamage(text, color, worldPos) {
+      const el = document.createElement('div');
+      el.className = 'floating-dmg';
+      el.textContent = text;
+      el.style.color = color;
+      document.body.appendChild(el);
+
+      const startTime = performance.now();
+      const duration = 850;
+
+      function updateDmgPos() {
+        const elapsed = performance.now() - startTime;
+        if (elapsed >= duration) {
+          el.remove();
+          return;
+        }
+
+        const screenPos = worldPos.clone();
+        screenPos.y += 0.8 + (elapsed / duration) * 0.9;
+        screenPos.project(camera);
+
+        const x = (screenPos.x * 0.5 + 0.5) * window.innerWidth;
+        const y = (-(screenPos.y * 0.5) + 0.5) * window.innerHeight;
+
+        el.style.left = `${x - 40}px`;
+        el.style.top = `${y}px`;
+        el.style.opacity = (1 - (elapsed / duration)).toFixed(2);
+        requestAnimationFrame(updateDmgPos);
+      }
+      requestAnimationFrame(updateDmgPos);
+    }
+
+    function showBanner(htmlText, type = '') {
+      const b = document.getElementById('combat-banner');
+      b.className = type;
+      b.innerHTML = htmlText;
+    }
+
     function setMeshColor(meshList, colorHex) {
       meshList.forEach(item => item.mesh.material.color.setHex(colorHex));
     }
@@ -694,262 +1933,126 @@
       meshList.forEach(item => item.mesh.material.color.setHex(item.originalColor));
     }
 
-    window.respawnAllSlimes = () => {
-      slimes.forEach((s, idx) => {
-        s.hp = s.maxHp;
-        s.state = SlimeState.IDLE;
-        s.timer = 0.0;
-        s.group.visible = true;
-        s.group.position.set(idx === 0 ? -3.5 : 3.5, 0, -3.5);
-        s.kbX = 0; s.kbZ = 0;
+    // ========================================================
+    // --- 11. Input & Controls ---
+    // ========================================================
+    const keys = {};
+    window.addEventListener('keydown', e => {
+      keys[e.key] = true;
+      if (e.key === 'Escape' && isGamePaused) {
+        closeLootModal();
+      }
+      // Keyboard Attack Trigger: Spacebar, J, Z, Enter
+      if (e.code === 'Space' || e.key === ' ' || e.key === 'j' || e.key === 'J' || e.key === 'z' || e.key === 'Z') {
+        triggerHeroAttack(e);
+      }
+    });
+    window.addEventListener('keyup', e => { keys[e.key] = false; });
+
+    const attackBtn = document.getElementById('attack-btn');
+    const attackCdOverlay = document.getElementById('attack-cd-overlay');
+    if (attackBtn) {
+      attackBtn.addEventListener('pointerdown', (e) => {
+        e.stopPropagation();
+        triggerHeroAttack(e);
       });
-      heroHp = 100;
-      combatBanner.className = '';
-      combatBanner.textContent = '슬라임이 모두 리스폰되었습니다!';
+    }
+
+    let joyActive = false;
+    let joyInputX = 0, joyInputZ = 0;
+    const joyBase = document.getElementById('joystick-base');
+    const joyKnob = document.getElementById('joystick-knob');
+    let touchId = null;
+    let joyOriginX = 0, joyOriginY = 0;
+
+    const startJoystick = (clientX, clientY, id = null) => {
+      joyActive = true;
+      touchId = id;
+      joyOriginX = clientX;
+      joyOriginY = clientY;
+      joyBase.style.left = joyOriginX + 'px';
+      joyBase.style.top = joyOriginY + 'px';
+      joyKnob.style.left = joyOriginX + 'px';
+      joyKnob.style.top = joyOriginY + 'px';
+      joyBase.style.display = 'block';
+      joyKnob.style.display = 'block';
     };
 
-    // ========================================================
-    // --- 6. Tactical AI Update & Bump Resolution ---
-    // ========================================================
-    function updateSlimeAI(s, dt) {
-      if (s.state === SlimeState.DEAD) return;
+    const moveJoystick = (clientX, clientY) => {
+      if (!joyActive) return;
+      const dx = clientX - joyOriginX;
+      const dy = clientY - joyOriginY;
+      const dist = Math.hypot(dx, dy);
+      const maxDist = 55;
+      const angle = Math.atan2(dy, dx);
+      const clamped = Math.min(dist, maxDist);
 
-      s.timer += dt;
-      const sx = s.group.position.x;
-      const sz = s.group.position.z;
+      joyKnob.style.left = (joyOriginX + Math.cos(angle) * clamped) + 'px';
+      joyKnob.style.top = (joyOriginY + Math.sin(angle) * clamped) + 'px';
 
-      const diffX = posX - sx;
-      const diffZ = posZ - sz;
-      const dist = Math.hypot(diffX, diffZ);
-      const toHeroX = diffX / (dist || 0.001);
-      const toHeroZ = diffZ / (dist || 0.001);
+      joyInputX = (clamped / maxDist) * Math.cos(angle);
+      joyInputZ = (clamped / maxDist) * Math.sin(angle);
+    };
 
-      // FSM
-      switch (s.state) {
-        case SlimeState.IDLE:
-          s.telegraphMesh.visible = false;
-          s.dizzyStarsGroup.visible = false;
-          // Cute gentle jelly breathing
-          const breath = Math.sin(s.timer * 3.5) * 0.05;
-          s.bodyPivot.scale.set(1.0 + breath, 1.0 - breath * 1.5, 1.0 + breath);
-          s.bodyPivot.position.y = 0;
-          if (s.tipMesh) s.tipMesh.rotation.z = Math.sin(s.timer * 3.5) * 0.12;
+    const stopJoystick = () => {
+      joyActive = false;
+      touchId = null;
+      joyInputX = 0;
+      joyInputZ = 0;
+      joyBase.style.display = 'none';
+      joyKnob.style.display = 'none';
+    };
 
-          if (dist <= s.aggroRadius) {
-            s.state = SlimeState.CHASE;
-            s.timer = 0.0;
-          }
-          break;
+    // Touch Support: Ignore touch if tapping attack button or top HUD
+    window.addEventListener('touchstart', (e) => {
+      if (e.target.closest('#attack-btn') || e.target.closest('#top-bar') || e.target.closest('#loot-modal') || e.target.closest('#victory-modal') || e.target.closest('#defeat-modal')) return;
+      const t = e.changedTouches[0];
+      startJoystick(t.clientX, t.clientY, t.identifier);
+    }, { passive: true });
 
-        case SlimeState.CHASE:
-          s.telegraphMesh.visible = false;
-          s.dizzyStarsGroup.visible = false;
-          // 1. Turn Rate Constraint: Rotate towards player at max 120 deg/s
-          const targetAngle = Math.atan2(toHeroX, toHeroZ);
-          let diffAngle = (targetAngle - s.facingAngle + Math.PI) % (Math.PI * 2) - Math.PI;
-          const maxTurn = (s.turnSpeedDeg * Math.PI / 180) * dt;
-
-          if (Math.abs(diffAngle) <= maxTurn) {
-            s.facingAngle = targetAngle;
-          } else {
-            s.facingAngle += Math.sign(diffAngle) * maxTurn;
-          }
-
-          const moveDirX = Math.sin(s.facingAngle);
-          const moveDirZ = Math.cos(s.facingAngle);
-
-          s.group.position.x += moveDirX * s.chaseSpeed * dt;
-          s.group.position.z += moveDirZ * s.chaseSpeed * dt;
-
-          // Ragnarok Poring signature "Boing! Boing!" hop
-          const hop = Math.abs(Math.sin(s.timer * 7.5));
-          s.bodyPivot.position.y = hop * 0.28;
-          s.bodyPivot.scale.set(1.15 - hop * 0.22, 0.85 + hop * 0.40, 1.15 - hop * 0.22);
-
-          if (dist <= s.attackRange) {
-            s.state = SlimeState.TELEGRAPH;
-            s.timer = 0.0;
-            s.lockedDashDir.set(moveDirX, moveDirZ);
-          }
-          break;
-
-        case SlimeState.TELEGRAPH:
-          s.dizzyStarsGroup.visible = false;
-          // 2. Lock-in: Puffs up like a pink balloon before launch!
-          s.telegraphMesh.visible = true;
-          const ratio = Math.min(1.0, s.timer / s.telegraphDuration);
-          s.telegraphMesh.scale.set(1.0, 1.0, ratio);
-
-          const vib = Math.sin(s.timer * 36.0) * 0.05;
-          s.bodyPivot.scale.set(1.30 + vib, 0.65, 1.30 + vib);
-          s.bodyPivot.position.y = 0;
-
-          if (s.timer >= s.telegraphDuration) {
-            s.state = SlimeState.DASH;
-            s.timer = 0.0;
-            s.telegraphMesh.visible = false;
-          }
-          break;
-
-        case SlimeState.DASH:
-          s.telegraphMesh.visible = false;
-          s.dizzyStarsGroup.visible = false;
-          // 3. High-speed straight dash along locked direction
-          s.group.position.x += s.lockedDashDir.x * s.dashSpeed * dt;
-          s.group.position.z += s.lockedDashDir.y * s.dashSpeed * dt;
-
-          s.bodyPivot.scale.set(0.75, 1.32, 0.75);
-          s.bodyPivot.position.y = 0.10;
-
-          if (s.timer >= s.dashDuration) {
-            s.state = SlimeState.RECOVERY;
-            s.timer = 0.0;
-          }
-          break;
-
-        case SlimeState.RECOVERY:
-          s.telegraphMesh.visible = false;
-          // 4. Dizzy cute flattened mochi puddle with spinning stars
-          s.dizzyStarsGroup.visible = true;
-          s.dizzyStarsGroup.rotation.y += dt * 4.5;
-
-          s.bodyPivot.scale.set(1.50, 0.36, 1.50);
-          s.bodyPivot.position.y = 0.0;
-
-          if (s.timer >= s.recoveryDuration) {
-            s.state = SlimeState.CHASE;
-            s.dizzyStarsGroup.visible = false;
-            s.timer = 0.0;
-          }
-          break;
-      }
-
-      // Slime facing yaw rotation
-      s.group.rotation.y = s.facingAngle;
-
-      // Knockback damping
-      const moveToward = (current, target, maxDelta) => {
-        if (Math.abs(target - current) <= maxDelta) return target;
-        return current + Math.sign(target - current) * maxDelta;
-      };
-      s.kbX = moveToward(s.kbX, 0, KB_FRICTION * dt);
-      s.kbZ = moveToward(s.kbZ, 0, KB_FRICTION * dt);
-      s.group.position.x += s.kbX * dt;
-      s.group.position.z += s.kbZ * dt;
-
-      // Clamp arena
-      s.group.position.x = Math.max(-11.5, Math.min(11.5, s.group.position.x));
-      s.group.position.z = Math.max(-11.5, Math.min(11.5, s.group.position.z));
-
-      // Flash feedback
-      if (s.flashTimer > 0.0) {
-        s.flashTimer -= dt;
-        setMeshColor(s.meshes, 0xffe066);
-        if (s.flashTimer <= 0.0) restoreMeshColor(s.meshes);
-      }
-    }
-
-    function checkSlimeBump(s) {
-      if (s.state === SlimeState.DEAD) return;
-
-      const sx = s.group.position.x;
-      const sz = s.group.position.z;
-      const diffX = posX - sx;
-      const diffZ = posZ - sz;
-      const dist = Math.hypot(diffX, diffZ);
-      const COLLISION_RADIUS = 0.78;
-
-      if (dist < COLLISION_RADIUS) {
-        const contactX = diffX / (dist || 0.001);
-        const contactZ = diffZ / (dist || 0.001);
-
-        // Slime current facing vector
-        const slimeFacingX = Math.sin(s.facingAngle);
-        const slimeFacingZ = Math.cos(s.facingAngle);
-
-        // Angle Evaluation: cos(theta) = F_target . V_contact
-        const angleCos = slimeFacingX * contactX + slimeFacingZ * contactZ;
-        const isFrontal = angleCos >= 0.70710678;
-
-        // Separation
-        const overlap = (COLLISION_RADIUS - dist) + 0.04;
-        posX += contactX * (overlap * 0.5);
-        posZ += contactZ * (overlap * 0.5);
-        s.group.position.x -= contactX * (overlap * 0.5);
-        s.group.position.z -= contactZ * (overlap * 0.5);
-
-        // 1. Attack Cooldown Check (No-iFrame)
-        if (heroCooldown > 0.0) {
-          heroKbX = contactX * 3.8;
-          heroKbZ = contactZ * 3.8;
-          s.kbX = -contactX * 1.8;
-          s.kbZ = -contactZ * 1.8;
-          return;
-        }
-
-        // 2. Valid Hit
-        heroCooldown = BASE_COOLDOWN;
-        hitstopTimer = 0.04;
-        shakeTimer = 0.14;
-
-        const hitPos = new THREE.Vector3(sx + contactX * 0.4, 0.5, sz + contactZ * 0.4);
-
-        if (isFrontal && s.state !== SlimeState.RECOVERY) {
-          // Frontal Clash: Mutual Damage
-          const heroDmg = 8;
-          const slimeDmg = 10;
-          heroHp = Math.max(0, heroHp - heroDmg);
-          s.hp = Math.max(0, s.hp - slimeDmg);
-
-          heroKbX = contactX * 5.2;
-          heroKbZ = contactZ * 5.2;
-          s.kbX = -contactX * 4.8;
-          s.kbZ = -contactZ * 4.8;
-
-          heroFlashTimer = 0.12;
-          s.flashTimer = 0.12;
-
-          spawnFloatingDamage(`💥 -${slimeDmg} CLASH!`, "#fca5a5", hitPos);
-          spawnFloatingDamage(`⚠️ -${heroDmg} DAMAGE`, "#ef4444", new THREE.Vector3(posX, 1.2, posZ));
-          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0xef4444, 16);
-
-          combatBanner.className = 'frontal';
-          combatBanner.innerHTML = `💥 <b>정면 격돌 (Frontal Clash)!</b> 상호 피해: 용사 -${heroDmg} HP, 슬라임 -${slimeDmg} HP`;
-        } else {
-          // Flank/Rear Advantage (or Recovery Punish!)
-          const isRecoveryPunish = (s.state === SlimeState.RECOVERY);
-          const slimeDmg = isRecoveryPunish ? 16 : 12; // Extra counter damage!
-          s.hp = Math.max(0, s.hp - slimeDmg);
-
-          heroKbX = contactX * 1.2;
-          heroKbZ = contactZ * 1.2;
-          s.kbX = -contactX * 7.2;
-          s.kbZ = -contactZ * 7.2;
-
-          s.flashTimer = 0.14;
-
-          const label = isRecoveryPunish ? `⚡ -${slimeDmg} RECOVERY PUNISH!` : `⚡ -${slimeDmg} ADVANTAGE!`;
-          spawnFloatingDamage(label, "#34d399", hitPos);
-          spawnFloatingDamage(`🛡️ 0 (GUARD)`, "#38bdf8", new THREE.Vector3(posX, 1.2, posZ));
-          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x38bdf8, 22);
-
-          combatBanner.className = 'advantage';
-          combatBanner.innerHTML = isRecoveryPunish 
-            ? `⚡ <b>무방비 카운터 (Punish)!</b> 용사 0피해, 슬라임 -${slimeDmg} 크리티컬!`
-            : `⚡ <b>측후면 일방 타격 (Advantage)!</b> 용사 0피해, 슬라임 -${slimeDmg} HP!`;
-        }
-
-        if (s.hp <= 0) {
-          s.state = SlimeState.DEAD;
-          s.group.visible = false;
-          spawnFloatingDamage(`💀 DEFEATED!`, "#fbbf24", hitPos);
-          spawnSparks(hitPos.x, hitPos.y, hitPos.z, 0x10b981, 28);
+    window.addEventListener('touchmove', (e) => {
+      if (!joyActive) return;
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        const t = e.changedTouches[i];
+        if (t.identifier === touchId) {
+          moveJoystick(t.clientX, t.clientY);
         }
       }
-    }
+    }, { passive: true });
+
+    const onTouchEnd = (e) => {
+      for (let i = 0; i < e.changedTouches.length; i++) {
+        if (e.changedTouches[i].identifier === touchId) {
+          stopJoystick();
+        }
+      }
+    };
+    window.addEventListener('touchend', onTouchEnd, { passive: true });
+    window.addEventListener('touchcancel', onTouchEnd, { passive: true });
+
+    // Pointer/Mouse Drag Support for PC
+    window.addEventListener('pointerdown', (e) => {
+      if (e.pointerType === 'touch') return;
+      if (e.target.closest('#attack-btn') || e.target.closest('#top-bar') || e.target.closest('#loot-modal') || e.target.closest('#victory-modal') || e.target.closest('#defeat-modal')) return;
+      startJoystick(e.clientX, e.clientY, e.pointerId);
+    });
+    window.addEventListener('pointermove', (e) => {
+      if (e.pointerType === 'touch') return;
+      if (joyActive && e.pointerId === touchId) {
+        moveJoystick(e.clientX, e.clientY);
+      }
+    });
+    const onPointerUp = (e) => {
+      if (e.pointerType === 'touch') return;
+      if (joyActive && e.pointerId === touchId) {
+        stopJoystick();
+      }
+    };
+    window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
 
     // ========================================================
-    // --- 7. Main Game Loop ---
+    // --- 12. Main Game Loop ---
     // ========================================================
     const heroHpFill = document.getElementById('hero-hp-fill');
     const heroHpVal = document.getElementById('hero-hp-val');
@@ -964,22 +2067,47 @@
       const dt = Math.min((currentTime - lastTime) / 1000, 0.05);
       lastTime = currentTime;
 
-      // 0. Hitstop
+      // RULE 5: ZERO-RISK PAUSE INVARIANT CHECK
+      // If paused (e.g. Loot modal open), ALL game physics & AI freeze 100%!
+      if (isGamePaused) {
+        renderer.render(scene, camera);
+        return;
+      }
+
+      // Hitstop
       if (hitstopTimer > 0.0) {
         hitstopTimer -= dt;
         renderer.render(scene, camera);
         return;
       }
 
-      // 1. Attack Cooldown
+      // Attack Cooldown
       if (heroCooldown > 0.0) {
         heroCooldown = Math.max(0, heroCooldown - dt);
         const cdPercent = (heroCooldown / BASE_COOLDOWN) * 100;
         cdFill.style.width = cdPercent + '%';
         cdVal.textContent = heroCooldown.toFixed(2) + 's';
+        if (attackCdOverlay) attackCdOverlay.style.opacity = (heroCooldown / BASE_COOLDOWN) * 0.75;
       } else {
         cdFill.style.width = '0%';
         cdVal.textContent = 'READY';
+        if (attackCdOverlay) attackCdOverlay.style.opacity = 0;
+      }
+
+      // Hero Sword Slash Animation & Visual Arc Wave
+      if (slashAnimTimer > 0.0) {
+        slashAnimTimer -= dt;
+        const progress = 1.0 - (slashAnimTimer / SLASH_DURATION);
+        // Dynamic arm swing arc
+        rightArmPivot.rotation.y = -0.20 + Math.sin(progress * Math.PI) * 1.6;
+        rightArmPivot.rotation.x = -0.70 + Math.sin(progress * Math.PI) * 0.6;
+        // Glowing cyan slash arc wave
+        slashArcMesh.material.opacity = Math.sin(progress * Math.PI) * 0.90;
+        slashArcMesh.rotation.z = -progress * 1.2;
+      } else if (isSlashing) {
+        isSlashing = false;
+        rightArmPivot.rotation.set(-0.70, -0.20, -0.10);
+        slashArcMesh.material.opacity = 0.0;
       }
 
       if (heroFlashTimer > 0.0) {
@@ -988,7 +2116,11 @@
         if (heroFlashTimer <= 0.0) restoreMeshColor(heroMeshes);
       }
 
-      // 2. Input Processing
+      if (heroInvulnerableTimer > 0.0) {
+        heroInvulnerableTimer -= dt;
+      }
+
+      // Hero Input Processing
       let inputX = 0, inputZ = 0;
       if (keys.w || keys.ArrowUp) inputZ -= 1;
       if (keys.s || keys.ArrowDown) inputZ += 1;
@@ -1007,7 +2139,6 @@
         targetDirZ = inputZ / Math.max(1.0, inputLen);
       }
 
-      // 3. Hero Locomotion
       const moveToward = (current, target, maxDelta) => {
         if (Math.abs(target - current) <= maxDelta) return target;
         return current + Math.sign(target - current) * maxDelta;
@@ -1029,12 +2160,9 @@
       posX += (velX + heroKbX) * dt;
       posZ += (velZ + heroKbZ) * dt;
 
-      posX = Math.max(-11.5, Math.min(11.5, posX));
-      posZ = Math.max(-11.5, Math.min(11.5, posZ));
-
       heroGroup.position.set(posX, 0, posZ);
 
-      // Hero Crossy Road hopping
+      // Hero Walk Bobbing
       const speed = Math.hypot(velX, velZ);
       if (speed > 0.15) {
         hopCycle += (speed / MAX_SPEED) * (Math.PI * 4.6) * dt;
@@ -1048,70 +2176,39 @@
         heroBodyPivot.scale.set(1.0, 1.0, 1.0);
       }
 
-      // 4. Update Slime AI & Check Bumps
+      // Update Slimes & Collisions
       slimes.forEach(s => {
         updateSlimeAI(s, dt);
         checkSlimeBump(s);
       });
 
+      // Update Floor Drops & Exit
+      checkFloorInteractions(dt);
+
       updateSparks(dt);
 
-      // 5. Camera & Screen Shake
+      // Camera Follow & Shake
       let shakeOffsetX = 0, shakeOffsetZ = 0;
       if (shakeTimer > 0.0) {
         shakeTimer -= dt;
-        shakeOffsetX = (Math.random() - 0.5) * 0.18;
-        shakeOffsetZ = (Math.random() - 0.5) * 0.18;
+        shakeOffsetX = (Math.random() - 0.5) * 0.36;
+        shakeOffsetZ = (Math.random() - 0.5) * 0.36;
       }
       camera.position.x = posX + shakeOffsetX;
       camera.position.z = posZ + CAM_Z + shakeOffsetZ;
       camera.position.y = CAM_Y;
 
-      // 6. HUD Updates
+      // Update HUD & Minimap
       heroHpFill.style.width = (heroHp / heroMaxHp * 100) + '%';
       heroHpVal.textContent = `${heroHp}/${heroMaxHp}`;
-
-      slimes.forEach((s, idx) => {
-        const fill = document.getElementById(`slime-${idx}-hp-fill`);
-        const val = document.getElementById(`slime-${idx}-hp-val`);
-        if (fill && val) {
-          fill.style.width = (s.hp / s.maxHp * 100) + '%';
-          val.textContent = s.hp > 0 ? `${s.hp}/${s.maxHp}` : 'DEAD';
-        }
-      });
+      drawMinimap();
 
       renderer.render(scene, camera);
     }
     requestAnimationFrame(animate);
 
-    // ========================================================
-    // --- 8. UI Helpers ---
-    // ========================================================
-    window.updateViewSize = (val) => {
-      orthoSize = parseFloat(val);
-      const a = window.innerWidth / window.innerHeight;
-      camera.left = -orthoSize * a / 2;
-      camera.right = orthoSize * a / 2;
-      camera.top = orthoSize / 2;
-      camera.bottom = -orthoSize / 2;
-      camera.updateProjectionMatrix();
-
-      document.querySelectorAll('.btn-row .btn').forEach(b => b.classList.remove('active'));
-      const activeBtn = document.getElementById('btn-' + Math.round(orthoSize));
-      if (activeBtn) activeBtn.classList.add('active');
-    };
-
-    window.toggleHud = () => {
-      const b = document.getElementById('hud-body');
-      const btn = document.getElementById('btn-toggle-hud');
-      if (b.style.display === 'none') {
-        b.style.display = 'block';
-        btn.textContent = '🔼 접기';
-      } else {
-        b.style.display = 'none';
-        btn.textContent = '🔽 메뉴';
-      }
-    };
+    // Initial Start
+    initFloor(1);
 
     window.addEventListener('resize', () => {
       const a = window.innerWidth / window.innerHeight;

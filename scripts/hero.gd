@@ -12,7 +12,11 @@ signal bumped(result: BumpResolver.BumpResult)
 @export var friction: float = 48.0
 @export var rotation_speed: float = 18.0
 
-# 전투 스탯 (Layer 2)
+# 전투 스탯 (Layer 2 & Layer 4)
+@export var base_max_hp: int = 100
+@export var base_atk: float = 12.0
+@export var base_def: float = 4.0
+
 @export var stat_hp: int = 100
 @export var stat_max_hp: int = 100
 @export var stat_atk: float = 12.0
@@ -20,6 +24,16 @@ signal bumped(result: BumpResolver.BumpResult)
 @export var stat_atk_spd_boost: float = 0.0
 @export var stat_crit_rate: float = 0.15
 @export var stat_crit_mult: float = 1.5
+
+func apply_equipment_bonuses(bonuses: Dictionary) -> void:
+	stat_atk = base_atk + bonuses.get("bonus_atk", 0.0)
+	stat_def = base_def + bonuses.get("bonus_def", 0.0)
+	var old_max_hp := stat_max_hp
+	stat_max_hp = base_max_hp + bonuses.get("bonus_hp", 0)
+	stat_atk_spd_boost = bonuses.get("bonus_atk_spd", 0.0)
+	if stat_max_hp > old_max_hp:
+		stat_hp += (stat_max_hp - old_max_hp)
+	stat_hp = clampi(stat_hp, 0, stat_max_hp)
 
 # 전투 런타임 상태
 var attack_cooldown: float = 0.0

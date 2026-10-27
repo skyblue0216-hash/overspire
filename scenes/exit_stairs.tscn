@@ -1,0 +1,73 @@
+[gd_scene load_steps=10 format=3 uid="uid://d1stairs_exit_v1"]
+
+[ext_resource type="Script" path="res://scripts/exit_stairs.gd" id="1_stairs_script"]
+
+[sub_resource type="BoxShape3D" id="BoxShape3D_stairs"]
+size = Vector3(2.0, 1.5, 2.0)
+
+[sub_resource type="StandardMaterial3D" id="mat_stone"]
+albedo_color = Color(0.25, 0.28, 0.35, 1)
+roughness = 0.9
+
+[sub_resource type="BoxMesh" id="mesh_step1"]
+material = SubResource("mat_stone")
+size = Vector3(1.8, 0.25, 1.8)
+
+[sub_resource type="BoxMesh" id="mesh_step2"]
+material = SubResource("mat_stone")
+size = Vector3(1.4, 0.45, 1.4)
+
+[sub_resource type="StandardMaterial3D" id="mat_locked_ruby"]
+albedo_color = Color(0.9, 0.15, 0.2, 1)
+emission_enabled = true
+emission = Color(0.8, 0.1, 0.1, 1)
+emission_energy_multiplier = 2.0
+
+[sub_resource type="BoxMesh" id="mesh_lock"]
+material = SubResource("mat_locked_ruby")
+size = Vector3(0.5, 0.6, 0.3)
+
+[sub_resource type="StandardMaterial3D" id="mat_gold_portal"]
+albedo_color = Color(1.0, 0.85, 0.2, 0.85)
+transparency = 1
+emission_enabled = true
+emission = Color(1.0, 0.8, 0.2, 1)
+emission_energy_multiplier = 3.0
+
+[sub_resource type="CylinderMesh" id="mesh_portal_beam"]
+material = SubResource("mat_gold_portal")
+top_radius = 0.6
+bottom_radius = 0.6
+height = 2.0
+
+[node name="ExitStairs" type="Area3D"]
+collision_layer = 4
+collision_mask = 1
+script = ExtResource("1_stairs_script")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.75, 0)
+shape = SubResource("BoxShape3D_stairs")
+
+[node name="StairBase" type="Node3D" parent="."]
+
+[node name="Step1" type="MeshInstance3D" parent="StairBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.125, 0)
+mesh = SubResource("mesh_step1")
+
+[node name="Step2" type="MeshInstance3D" parent="StairBase"]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.225, 0)
+mesh = SubResource("mesh_step2")
+
+[node name="LockIndicator" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0.9, 0)
+
+[node name="LockMesh" type="MeshInstance3D" parent="LockIndicator"]
+mesh = SubResource("mesh_lock")
+
+[node name="UnlockedPortal" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.0, 0)
+visible = false
+
+[node name="BeamMesh" type="MeshInstance3D" parent="UnlockedPortal"]
+mesh = SubResource("mesh_portal_beam")

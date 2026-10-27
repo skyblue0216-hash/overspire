@@ -1,8 +1,8 @@
 class_name Slime
 extends CharacterBody3D
 
-## Layer 3 Tactical Loop: Poring-style Slime Entity Controller
-## Manages Ragnarok Poring-style squishy hop kinematics, telegraph, and bump handling
+## Layer 3 Tactical Loop: Slime Entity Controller
+## Manages squishy hop kinematics, telegraph, and bump handling
 
 signal slime_died(slime: Slime)
 
@@ -10,6 +10,7 @@ signal slime_died(slime: Slime)
 @export var stat_max_hp: int = 30
 @export var stat_atk: float = 10.0
 @export var stat_def: float = 1.0
+@export var is_key_carrier: bool = false
 
 var brain: SlimeBrain = SlimeBrain.new()
 var target_hero: Node3D = null
@@ -55,7 +56,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 	global_position.y = 0.0
 
-	# 4. Update Visual Facing & Poring Squash & Stretch
+	# 4. Update Visual Facing & Slime Squash & Stretch
 	_update_visuals(cmd, delta)
 
 	# 5. Flash Timer
@@ -72,7 +73,7 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 	var facing_angle := atan2(cmd.facing_direction.x, cmd.facing_direction.y)
 	visual_pivot.rotation.y = lerp_angle(visual_pivot.rotation.y, facing_angle, 16.0 * delta)
 
-	# Poring State-driven Squash & Stretch
+	# Slime State-driven Squash & Stretch
 	match cmd.state:
 		ArchetypeBrain.AIState.IDLE:
 			# Plump mochi breathing
@@ -83,7 +84,7 @@ func _update_visuals(cmd: ArchetypeBrain.AICommand, delta: float) -> void:
 		ArchetypeBrain.AIState.CHASE:
 			if telegraph_indicator:
 				telegraph_indicator.visible = false
-			# Ragnarok Poring signature "Boing! Boing!" hop
+			# Slime signature "Boing! Boing!" hop
 			var hop := abs(sin(_anim_time * 7.5))
 			visual_pivot.position.y = hop * 0.28
 			# Stretch tall at peak, squash wide on ground impact
@@ -130,5 +131,9 @@ func apply_bump_impact(damage: int, knockback: Vector3, is_frontal: bool) -> voi
 func die() -> void:
 	stat_hp = 0
 	brain.current_state = ArchetypeBrain.AIState.DEAD
+	if is_key_carrier:
+		var session = get_tree().get_first_node_in_group("session_manager")
+		if session and session is SessionManager:
+			session.collect_key()
 	slime_died.emit(self)
 	queue_free()
